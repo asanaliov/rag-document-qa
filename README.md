@@ -13,6 +13,7 @@ Question → Embed → Similarity Search → Top-K Chunks → LLM → Answer
 ```
 
 **The RAG pipeline in plain terms:**
+
 1. **Load** — reads PDF, TXT, or Markdown files
 2. **Chunk** — splits the document into overlapping passages (~1000 chars each) so no context is lost at boundaries
 3. **Embed** — converts each chunk into a numerical vector using `all-MiniLM-L6-v2` (runs locally, no API needed)
@@ -22,14 +23,14 @@ Question → Embed → Similarity Search → Top-K Chunks → LLM → Answer
 
 ## Tech Stack
 
-| Component | Technology |
-|---|---|
-| Framework | LangChain (LCEL) |
-| Vector Store | FAISS |
-| Embeddings | sentence-transformers (`all-MiniLM-L6-v2`) |
-| LLM | Ollama (`llama3.2:3b`, runs locally) |
-| UI | Gradio |
-| Document Parsing | PyPDF, TextLoader |
+| Component        | Technology                                 |
+| ---------------- | ------------------------------------------ |
+| Framework        | LangChain (LCEL)                           |
+| Vector Store     | FAISS                                      |
+| Embeddings       | sentence-transformers (`all-MiniLM-L6-v2`) |
+| LLM              | Ollama (`llama3.2:3b`, runs locally)       |
+| UI               | Gradio                                     |
+| Document Parsing | PyPDF, TextLoader                          |
 
 ## Setup
 
@@ -69,7 +70,7 @@ rag-document-qa/
 ├── rag/
 │   ├── loader.py       # Document loading and chunking
 │   ├── store.py        # Embedding model and FAISS vector store
-│   └── qa.py           # RAG chain with Claude (LCEL pipeline)
+│   └── qa.py           # RAG chain with Ollama (LCEL pipeline)
 ├── requirements.txt
 ├── .env.example
 └── README.md
@@ -81,7 +82,7 @@ rag-document-qa/
 - **Local embeddings** — `all-MiniLM-L6-v2` runs on CPU with no API key, keeping the retrieval step free and fast
 - **Overlapping chunks** — 200-char overlap between chunks ensures context isn't lost at split boundaries
 - **LCEL pipeline** — uses LangChain Expression Language for a clean, composable chain instead of legacy abstractions
-- **Strict grounding** — the system prompt instructs Claude to answer only from the provided context, reducing hallucination
+- **Strict grounding** — the system prompt instructs the local LLM to answer only from the provided context
 
 ## License
 
