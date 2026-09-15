@@ -28,10 +28,11 @@ def format_docs(docs):
     return "\n\n---\n\n".join(doc.page_content for doc in docs)
 
 
-def create_qa_chain(vector_store, model: str = DEFAULT_MODEL):
+def create_qa_chain(vector_store, model: str = DEFAULT_MODEL, llm=None):
     """Build the LCEL chain (prompt -> LLM -> string) and a top-k retriever."""
-    llm = ChatOllama(model=model, temperature=0)
-
+    if llm is None:
+        llm = ChatOllama(model=model, temperature=0)
+        
     prompt = ChatPromptTemplate.from_messages([
         ("system", SYSTEM_PROMPT),
         ("human", QA_TEMPLATE),
