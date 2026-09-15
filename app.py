@@ -7,6 +7,8 @@ from rag.qa import create_qa_chain, ask
 
 load_dotenv()
 
+NO_SOURCES = "*Retrieved passages will appear here after you ask a question.*"
+
 
 class RAGApp:
     """Stateful wrapper for the RAG pipeline."""
@@ -20,10 +22,10 @@ class RAGApp:
     def index_document(self, file):
         """Load, chunk, embed, and index an uploaded document."""
         if file is None:
-            return "⚠️ Please upload a document first."
+            self.chain = self.retriever = self.vector_store = None
+            return "*Waiting for a document...*", [], NO_SOURCES
 
         try:
-            # load and chunk
             docs = load_document(file.name)
             chunks = chunk_documents(docs)
 
@@ -31,81 +33,104 @@ class RAGApp:
             if self.embeddings is None:
                 self.embeddings = create_embeddings()
 
-            # build vector store and QA chain
             self.vector_store = build_vector_store(chunks, self.embeddings)
             self.chain, self.retriever = create_qa_chain(self.vector_store)
 
-            return (
-                f"✅ Indexed **{len(chunks)} chunks** from "
-                f"**{len(docs)} page(s)**. Ask away!"
+            status = (
+                f"✅ **Ready** — {len(chunks)} chunks from {len(docs)} page(s). "
+                "Ask a question below."
             )
         except Exception as e:
-            return f"❌ Error: {e}"
+            self.chain = self.retriever = self.vector_store = None
+            status = f"❌ **Error:** {e}"
+
+        # new document: start a fresh conversation
+        return status, [], NO_SOURCES
 
     def answer_question(self, question, history):
         """Run a question through the RAG pipeline."""
-        if not question.strip():
-            return history, ""
+        question = question.strip()
+        if not question:
+            return history, "", gr.update()
 
         if self.chain is None:
-            history = history + [
-                {"role": "user", "content": question},
-                {"role": "assistant", "content": "⚠️ Upload and index a document first."},
-            ]
-            return history, ""
-
-        try:
-            result = ask(self.chain, self.retriever, question)
-            answer = result["answer"]
-            answer += f"\n\n📄 *Retrieved {result['num_sources']} relevant chunks*"
-        except Exception as e:
-            answer = f"❌ Error: {e}"
+            answer = "⚠️ Upload a document first."
+            sources_md = NO_SOURCES
+        else:
+            try:
+                result = ask(self.chain, self.retriever, question)
+                answer = result["answer"]
+                sources_md = format_sources(result["sources"])
+            except Exception as e:
+                answer = f"❌ Error: {e}"
+                sources_md = NO_SOURCES
 
         history = history + [
             {"role": "user", "content": question},
             {"role": "assistant", "content": answer},
         ]
-        return history, ""
+        return history, "", sources_md
+
+
+def format_sources(docs, max_chars: int = 400):
+    """Render retrieved chunks as markdown so the user can verify the answer."""
+    parts = []
+    for i, doc in enumerate(docs, 1):
+        page = doc.metadata.get("page")
+        label = f"**Passage {i}**" + (f" — page {page + 1}" if page is not None else "")
+        text = doc.page_content.strip().replace("\n", " ")
+        if len(text) > max_chars:
+            text = text[:max_chars].rstrip() + "…"
+        parts.append(f"{label}\n\n> {text}")
+    return "\n\n".join(parts)
 
 
 def build_ui(app: RAGApp):
     """Construct the Gradio interface."""
     with gr.Blocks(title="RAG Document Q&A") as ui:
-        gr.Markdown("# 📄 RAG Document Q&A")
         gr.Markdown(
-            "Upload a document, index it into a vector store, "
-            "then ask questions answered by a local LLM using only the document's content."
+            "# 📄 RAG Document Q&A\n"
+            "Ask questions about your own documents. Everything runs locally — "
+            "no API keys, nothing leaves your machine."
         )
 
         with gr.Row():
-            with gr.Column(scale=1):
+            with gr.Column(scale=1, min_width=280):
                 file_input = gr.File(
-                    label="Upload Document",
+                    label="Document (PDF, TXT, MD)",
                     file_types=[".pdf", ".txt", ".md"],
                 )
-                index_btn = gr.Button("📥 Index Document", variant="primary")
-                status = gr.Markdown("*Waiting for document...*")
+                status = gr.Markdown("*Waiting for a document...*")
+                gr.Markdown(
+                    "**How it works**\n\n"
+                    "1. The document is split into overlapping chunks\n"
+                    "2. Each chunk is embedded and stored in a FAISS index\n"
+                    "3. Your question retrieves the most similar chunks\n"
+                    "4. A local LLM answers using only those chunks"
+                )
 
             with gr.Column(scale=2):
-                chatbot = gr.Chatbot(label="Chat", height=450)
+                chatbot = gr.Chatbot(height=480, show_label=False)
                 question = gr.Textbox(
-                    label="Your question",
-                    placeholder="What is this document about?",
+                    show_label=False,
+                    placeholder="Ask something about the document and press Enter…",
+                    submit_btn=True,
                 )
-                ask_btn = gr.Button("🔍 Ask", variant="primary")
+                with gr.Accordion("Retrieved passages", open=False):
+                    sources = gr.Markdown(NO_SOURCES)
+                clear_btn = gr.Button("Clear chat", size="sm")
 
-        # wire events
-        index_btn.click(app.index_document, inputs=[file_input], outputs=[status])
-        ask_btn.click(
-            app.answer_question,
-            inputs=[question, chatbot],
-            outputs=[chatbot, question],
+        file_input.change(
+            app.index_document,
+            inputs=[file_input],
+            outputs=[status, chatbot, sources],
         )
         question.submit(
             app.answer_question,
             inputs=[question, chatbot],
-            outputs=[chatbot, question],
+            outputs=[chatbot, question, sources],
         )
+        clear_btn.click(lambda: ([], NO_SOURCES), outputs=[chatbot, sources])
 
     return ui
 
