@@ -1,88 +1,161 @@
-# 📄 RAG Document Q&A
+# RAG Document Q&A
 
-A Retrieval-Augmented Generation (RAG) application that lets you upload documents and ask questions about them using natural language. The system chunks the document, embeds it into a vector store, retrieves relevant passages, and generates accurate answers with a locally-run LLM.
+[![CI](https://github.com/asanaliov/rag-document-qa/actions/workflows/ci.yml/badge.svg)](https://github.com/asanaliov/rag-document-qa/actions/workflows/ci.yml)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-**Runs 100% free and offline** — both the embeddings and the language model run locally, so there are no API keys and no usage costs.
+Upload a document and ask questions about it in plain language. The app chunks the document, embeds it into a vector store, retrieves the most relevant passages for each question, and has a local LLM answer using only those passages — with the retrieved text shown alongside the answer so you can check it.
 
-## How It Works
+Retrieval and generation both run on your machine: no API keys, no usage costs, and documents never leave the host.
+
+## How it works
 
 ```
-Document → Chunk → Embed → Store (FAISS)
-                                  ↓
-Question → Embed → Similarity Search → Top-K Chunks → LLM → Answer
+Document -> Chunk -> Embed -> FAISS index
+                                   |
+Question -> Embed -> Similarity search -> Top-k chunks -> LLM -> Answer
 ```
 
-**The RAG pipeline in plain terms:**
+1. **Load** — reads PDF, TXT, or Markdown, rejecting oversized files and documents with no extractable text
+2. **Chunk** — splits into overlapping passages (1000 chars, 200 overlap) so nothing is lost at a boundary
+3. **Embed** — turns each chunk into a vector with `all-MiniLM-L6-v2` on CPU
+4. **Index** — stores the vectors in an in-memory FAISS index
+5. **Retrieve** — finds the k most similar chunks for the question
+6. **Generate** — sends those chunks and the question to a local LLM via Ollama, prompted to answer from the context only
 
-1. **Load** — reads PDF, TXT, or Markdown files
-2. **Chunk** — splits the document into overlapping passages (~1000 chars each) so no context is lost at boundaries
-3. **Embed** — converts each chunk into a numerical vector using `all-MiniLM-L6-v2` (runs locally, no API needed)
-4. **Index** — stores vectors in a FAISS index for fast similarity search
-5. **Retrieve** — when you ask a question, it finds the 4 most relevant chunks by cosine similarity
-6. **Generate** — sends the retrieved chunks + your question to a local LLM (via Ollama), which answers using only the provided context
-
-## Tech Stack
+## Tech stack
 
 | Component        | Technology                                 |
 | ---------------- | ------------------------------------------ |
 | Framework        | LangChain (LCEL)                           |
-| Vector Store     | FAISS                                      |
+| Vector store     | FAISS                                      |
 | Embeddings       | sentence-transformers (`all-MiniLM-L6-v2`) |
-| LLM              | Ollama (`llama3.2:3b`, runs locally)       |
+| LLM              | Ollama (`llama3.2:3b` by default)          |
 | UI               | Gradio                                     |
-| Document Parsing | PyPDF, TextLoader                          |
+| Document parsing | pypdf, LangChain TextLoader                |
+| Tests / lint     | pytest, ruff, GitHub Actions               |
+| Packaging        | Docker Compose (app + Ollama)              |
 
-## Setup
+## Run with Docker
+
+The compose stack runs the app and Ollama as two containers, pulls the model on
+first start, and needs nothing installed but Docker.
 
 ```bash
-# Clone
+git clone https://github.com/asanaliov/rag-document-qa.git
+cd rag-document-qa
+docker compose up
+```
+
+Open `http://localhost:7860`.
+
+First start downloads the model (about 2 GB) into a named volume; later starts
+reuse it. The embedding weights are baked into the image, so the app container
+itself needs no network beyond Ollama. To use a different model, set
+`OLLAMA_MODEL` in `.env` — compose reads it for both services.
+
+```bash
+docker compose up -d --build   # rebuild after code changes
+docker compose logs -f app
+docker compose down            # add -v to also drop the model volume
+```
+
+The app port is published on `127.0.0.1` only. Change it in `compose.yaml` to
+expose the UI on your network. Ollama runs on the CPU by default; `compose.yaml`
+has a commented GPU reservation block for machines with an NVIDIA runtime.
+
+## Run without Docker
+
+Needs Python 3.10 or newer.
+
+```bash
 git clone https://github.com/asanaliov/rag-document-qa.git
 cd rag-document-qa
 
-# Install dependencies
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Optional, and worth it on a machine without an NVIDIA GPU: the default torch
+# wheel pulls in roughly 4 GB of CUDA libraries this app never uses.
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+
 pip install -r requirements.txt
 
-# Install Ollama (the local LLM runtime) and pull a model
+# Ollama provides the local LLM runtime.
+# On Windows, install it from https://ollama.com/download instead.
 curl -fsSL https://ollama.com/install.sh | sh
 ollama pull llama3.2:3b
 
-# Run
+ollama serve      # skip if Ollama already runs as a service
 python app.py
 ```
 
-The app launches at `http://localhost:7860`. No API key required — everything runs locally.
+Open `http://localhost:7860`.
 
-> **Tip:** want a sharper model and have the RAM? Pull a bigger one
-> (`ollama pull llama3.1:8b`) and set `OLLAMA_MODEL=llama3.1:8b` in your environment.
+The first upload downloads the embedding model (about 90 MB) and caches it under
+`~/.cache/huggingface`, so it only happens once.
 
 ## Usage
 
-1. Upload a PDF, TXT, or MD file
-2. Click **Index Document** — this chunks and embeds the file
-3. Ask any question about the document in the chat
-4. The system retrieves relevant passages and generates an answer
+1. Upload a PDF, TXT, or MD file — it is chunked and indexed automatically (the first upload also loads the embedding model, so give it a moment)
+2. Ask a question and press Enter
+3. Expand **Retrieved passages** to see exactly which chunks the answer came from
+4. Upload a new file at any time to start over on a different document
 
-## Project Structure
+## Configuration
+
+Copy `.env.example` to `.env` to override any default. Every setting is read once at startup by `rag/config.py`.
+
+| Variable                       | Default                  | Purpose                       |
+| ------------------------------ | ------------------------ | ----------------------------- |
+| `OLLAMA_MODEL`                 | `llama3.2:3b`            | Generation model              |
+| `OLLAMA_BASE_URL`              | `http://localhost:11434` | Ollama endpoint               |
+| `EMBEDDING_MODEL`              | `all-MiniLM-L6-v2`       | Sentence-transformer model    |
+| `EMBEDDING_DEVICE`             | `cpu`                    | Set to `cuda` to embed on GPU |
+| `CHUNK_SIZE` / `CHUNK_OVERLAP` | `1000` / `200`           | Splitter settings             |
+| `RETRIEVAL_K`                  | `4`                      | Chunks retrieved per question |
+| `MAX_UPLOAD_MB`                | `25`                     | Upload size limit             |
+| `SERVER_HOST` / `SERVER_PORT`  | `127.0.0.1` / `7860`     | Bind address                  |
+| `LOG_LEVEL`                    | `INFO`                   | Root log level                |
+
+## Development
+
+```bash
+pip install -r requirements-dev.txt
+pytest          # 28 tests, all offline: no model downloads, no Ollama
+ruff check .
+```
+
+The test suite substitutes deterministic fake embeddings and a fake chat model for the real ones, so the full pipeline — loading, chunking, indexing, retrieval, answering and error handling — is covered without network access. CI runs the same two commands on Python 3.11 and 3.12.
+
+## Project structure
 
 ```
 rag-document-qa/
-├── app.py              # Gradio UI and application entry point
+├── app.py              # Gradio UI and entry point
 ├── rag/
-│   ├── loader.py       # Document loading and chunking
-│   ├── store.py        # Embedding model and FAISS vector store
-│   └── qa.py           # RAG chain with Ollama (LCEL pipeline)
-├── requirements.txt
-├── .env.example
-└── README.md
+│   ├── config.py       # Settings resolved from the environment
+│   ├── errors.py       # Exceptions carrying user-safe messages
+│   ├── loader.py       # Document loading, validation, chunking
+│   ├── store.py        # Embedding model and FAISS index
+│   ├── qa.py           # Prompt, LLM, LCEL chain
+│   └── pipeline.py     # Stateful orchestration, UI-independent
+├── tests/
+├── Dockerfile          # CPU-only image with the embedding weights baked in
+├── compose.yaml        # App plus Ollama, model pulled on first start
+└── .github/workflows/  # Lint and test on every push
 ```
 
-## Key Design Decisions
+## Design decisions
 
-- **Fully local & free** — both retrieval (embeddings) and generation (Ollama) run on your own machine, so there are no API keys, no per-query costs, and your documents never leave your computer
-- **Local embeddings** — `all-MiniLM-L6-v2` runs on CPU with no API key, keeping the retrieval step free and fast
-- **Overlapping chunks** — 200-char overlap between chunks ensures context isn't lost at split boundaries
-- **LCEL pipeline** — uses LangChain Expression Language for a clean, composable chain instead of legacy abstractions
-- **Strict grounding** — the system prompt instructs the local LLM to answer only from the provided context
+- **Pipeline separated from UI** — `DocumentQA` owns all state and knows nothing about Gradio, which is what makes the end-to-end tests possible without a browser or a server
+- **Injected models** — embeddings and the LLM are constructor arguments, so tests swap in fakes and a future API-backed model is a one-line change
+- **Retrieve once, then generate** — the retriever is kept out of the chain so the exact passages behind an answer can be shown to the user
+- **Strict grounding** — the system prompt confines the model to the provided context and gives it an explicit way to say the answer is not there
+- **Typed errors** — `RagError` subclasses carry messages safe to display; anything else is logged with a traceback and surfaced as a generic failure, so internals never leak into the UI
+- **In-memory index** — an index belongs to one uploaded document and is discarded with it, so there is nothing to persist or invalidate
+- **Lazy heavy imports** — torch and the embedding weights load on first use, keeping startup fast
+- **Ollama as a separate container** — the model server has its own lifecycle and a volume that survives rebuilds, so changing application code never re-downloads several gigabytes of weights
 
 ## License
 
