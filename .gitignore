@@ -8,3 +8,5 @@ dist/
 build/
 .gradio/
 flagged/
+.pytest_cache/
+.ruff_cache/
