@@ -1,88 +1,69 @@
-"""Tests for rag/loader.py — document loading and chunking."""
 import pytest
+from langchain_core.documents import Document
 
-from rag.loader import load_document, chunk_documents
+from rag.errors import EmptyDocumentError, FileTooLargeError, UnsupportedFileTypeError
+from rag.loader import chunk_documents, load_document
 
-
-# ---------------------------------------------------------------------------
-# WORKED EXAMPLE — read this one carefully, then write the three below it.
-# ---------------------------------------------------------------------------
 
 def test_loads_txt_file(sample_text_file):
-    """A .txt file loads into exactly one Document with the right text."""
-    # `sample_text_file` was NOT passed by us. pytest saw the parameter name,
-    # found the fixture of that name in conftest.py, ran it, and handed us
-    # back its return value: the path to a real .txt file on disk.
-
     docs = load_document(sample_text_file)
 
-    # TextLoader reads the whole file as a single Document, so: exactly one.
     assert len(docs) == 1
-
-    # A Document is an object with .page_content (the text) and .metadata (a dict).
-    # We assert on a substring rather than the whole string, so the test doesn't
-    # break every time someone edits an unrelated line of the fixture text.
     assert "Zorblax" in docs[0].page_content
 
 
-# ---------------------------------------------------------------------------
-# YOUR TURN — delete the @pytest.mark.skip line from each one as you write it.
-# ---------------------------------------------------------------------------
-
-@pytest.mark.skip(reason="you write this one")
 def test_loads_md_file(tmp_path):
-    """A .md file loads the same way a .txt does.
+    path = tmp_path / "notes.md"
+    path.write_text("# Notes\n\nThe Zorblax protocol uses a 42-bit handshake.", encoding="utf-8")
 
-    There's no `sample_md_file` fixture, so use `tmp_path` directly — it's a
-    pytest built-in giving you a fresh empty directory, unique to this test.
+    docs = load_document(str(path))
 
-    Three steps:
-      1. path = tmp_path / "notes.md"          <- `/` joins paths, like os.path.join
-      2. path.write_text("...", encoding="utf-8")
-      3. load it (load_document wants a str, so wrap: str(path)) and assert on it
-    """
+    assert len(docs) == 1
+    assert "42-bit handshake" in docs[0].page_content
 
 
-@pytest.mark.skip(reason="you write this one")
 def test_rejects_unsupported_extension(tmp_path):
-    """A .docx file raises ValueError naming the supported types.
+    path = tmp_path / "report.docx"
+    path.write_bytes(b"not really a word document")
 
-    To assert that something raises, you wrap it in a `with` block:
+    with pytest.raises(UnsupportedFileTypeError) as excinfo:
+        load_document(str(path))
 
-        with pytest.raises(ValueError) as excinfo:
-            load_document(str(path))
-
-    If the call raises ValueError, the test passes. If it raises nothing, or
-    raises some *other* exception, the test fails. `excinfo.value` then holds
-    the exception object, so `str(excinfo.value)` is the message text.
-
-    Assert the message mentions ".docx". Do NOT assert the full message:
-    look at SUPPORTED_EXTENSIONS in rag/loader.py:6 and ask yourself what
-    type it is and whether ', '.join() over it gives a stable order.
-    """
+    assert ".docx" in str(excinfo.value)
 
 
-@pytest.mark.skip(reason="you write this one")
+def test_rejects_missing_file(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        load_document(str(tmp_path / "nope.txt"))
+
+
+def test_rejects_file_over_size_limit(sample_text_file):
+    with pytest.raises(FileTooLargeError, match="exceeds"):
+        load_document(sample_text_file, max_size_mb=0)
+
+
+def test_rejects_document_with_no_extractable_text(tmp_path):
+    path = tmp_path / "blank.txt"
+    path.write_text("   \n\n  ", encoding="utf-8")
+
+    with pytest.raises(EmptyDocumentError):
+        load_document(str(path))
+
+
 def test_chunks_overlap():
-    """Consecutive chunks share text — proving chunk_overlap actually works.
+    # Numbered sentences make every position unique, so shared text between
+    # consecutive chunks can only come from the overlap.
+    text = " ".join(f"Sentence number {i} is unique." for i in range(400))
+    chunks = chunk_documents([Document(page_content=text)])
 
-    You don't need a file here. chunk_documents takes Documents, and you can
-    build one directly:
+    assert len(chunks) > 1
+    assert chunks[0].page_content[-50:] in chunks[1].page_content
 
-        from langchain_core.documents import Document
-        doc = Document(page_content="...")
 
-    Make the text long enough to force a split (default chunk_size is 1000,
-    so aim for several thousand chars) and make it *non-repeating*, or you
-    can't tell real overlap from coincidence. A trick: build it from numbered
-    sentences so every position is unique, e.g.
+def test_chunking_preserves_metadata():
+    doc = Document(page_content="x " * 2000, metadata={"source": "guide.pdf", "page": 2})
 
-        text = " ".join(f"Sentence number {i} is unique." for i in range(400))
+    chunks = chunk_documents([doc])
 
-    Then chunk it and assert the property. The tail of chunks[0] should appear
-    inside chunks[1]. Getting the exact overlap length right is fiddly and
-    brittle -- instead take a modest slice from the END of chunks[0]
-    (say the last 50 chars) and assert it appears in chunks[1].
-
-    Also assert len(chunks) > 1, or the overlap assertion is vacuous.
-    """
+    assert all(chunk.metadata["source"] == "guide.pdf" for chunk in chunks)
+    assert all(chunk.metadata["page"] == 2 for chunk in chunks)
