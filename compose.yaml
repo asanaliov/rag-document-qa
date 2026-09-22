@@ -1,0 +1,56 @@
+name: rag-document-qa
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama-models:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    # Uncomment to serve the model on a GPU instead of the CPU.
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  # One-shot: downloads the model into the volume above, then exits. The app
+  # waits for it so a first `docker compose up` needs no manual pull.
+  model-pull:
+    image: ollama/ollama:latest
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    command: ["pull", "${OLLAMA_MODEL:-llama3.2:3b}"]
+    restart: "no"
+
+  app:
+    build: .
+    depends_on:
+      model-pull:
+        condition: service_completed_successfully
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+      SERVER_HOST: 0.0.0.0
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:3b}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-all-MiniLM-L6-v2}
+      RETRIEVAL_K: ${RETRIEVAL_K:-4}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-25}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "127.0.0.1:7860:7860"
+    volumes:
+      - hf-cache:/home/app/.cache/huggingface
+    restart: unless-stopped
+
+volumes:
+  ollama-models:
+  hf-cache:

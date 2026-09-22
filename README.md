@@ -34,13 +34,39 @@ Question -> Embed -> Similarity search -> Top-k chunks -> LLM -> Answer
 | UI | Gradio |
 | Document parsing | pypdf, LangChain TextLoader |
 | Tests / lint | pytest, ruff, GitHub Actions |
+| Packaging | Docker Compose (app + Ollama) |
 
-## Setup
+## Run with Docker
+
+The compose stack runs the app and Ollama as two containers, pulls the model on
+first start, and needs nothing installed but Docker.
 
 ```bash
 git clone https://github.com/asanaliov/rag-document-qa.git
 cd rag-document-qa
+docker compose up
+```
 
+Open `http://localhost:7860`.
+
+First start downloads the model (about 2 GB) into a named volume; later starts
+reuse it. The embedding weights are baked into the image, so the app container
+itself needs no network beyond Ollama. To use a different model, set
+`OLLAMA_MODEL` in `.env` — compose reads it for both services.
+
+```bash
+docker compose up -d --build   # rebuild after code changes
+docker compose logs -f app
+docker compose down            # add -v to also drop the model volume
+```
+
+The app port is published on `127.0.0.1` only. Change it in `compose.yaml` to
+expose the UI on your network. Ollama runs on the CPU by default; `compose.yaml`
+has a commented GPU reservation block for machines with an NVIDIA runtime.
+
+## Run without Docker
+
+```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -48,16 +74,16 @@ pip install -r requirements.txt
 # Ollama provides the local LLM runtime
 curl -fsSL https://ollama.com/install.sh | sh
 ollama pull llama3.2:3b
-```
 
-## Run
-
-```bash
 ollama serve      # skip if Ollama already runs as a service
 python app.py
 ```
 
-Open `http://localhost:7860`.
+For a CPU-only machine, install torch from PyTorch's CPU index first
+(`pip install torch --index-url https://download.pytorch.org/whl/cpu`). The
+default wheel pulls in roughly 4 GB of CUDA libraries this app never uses.
+
+## Usage
 
 1. Upload a PDF, TXT, or MD file — it is chunked and indexed automatically (the first upload also loads the embedding model, so give it a moment)
 2. Ask a question and press Enter
@@ -103,6 +129,8 @@ rag-document-qa/
 │   ├── qa.py           # Prompt, LLM, LCEL chain
 │   └── pipeline.py     # Stateful orchestration, UI-independent
 ├── tests/
+├── Dockerfile          # CPU-only image with the embedding weights baked in
+├── compose.yaml        # App plus Ollama, model pulled on first start
 └── .github/workflows/  # Lint and test on every push
 ```
 
@@ -115,6 +143,7 @@ rag-document-qa/
 - **Typed errors** — `RagError` subclasses carry messages safe to display; anything else is logged with a traceback and surfaced as a generic failure, so internals never leak into the UI
 - **In-memory index** — an index belongs to one uploaded document and is discarded with it, so there is nothing to persist or invalidate
 - **Lazy heavy imports** — torch and the embedding weights load on first use, keeping startup fast
+- **Ollama as a separate container** — the model server has its own lifecycle and a volume that survives rebuilds, so changing application code never re-downloads several gigabytes of weights
 
 ## License
 
