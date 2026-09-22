@@ -66,12 +66,23 @@ has a commented GPU reservation block for machines with an NVIDIA runtime.
 
 ## Run without Docker
 
+Needs Python 3.10 or newer.
+
 ```bash
+git clone https://github.com/asanaliov/rag-document-qa.git
+cd rag-document-qa
+
 python3 -m venv .venv
 source .venv/bin/activate
+
+# Optional, and worth it on a machine without an NVIDIA GPU: the default torch
+# wheel pulls in roughly 4 GB of CUDA libraries this app never uses.
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+
 pip install -r requirements.txt
 
-# Ollama provides the local LLM runtime
+# Ollama provides the local LLM runtime.
+# On Windows, install it from https://ollama.com/download instead.
 curl -fsSL https://ollama.com/install.sh | sh
 ollama pull llama3.2:3b
 
@@ -79,9 +90,10 @@ ollama serve      # skip if Ollama already runs as a service
 python app.py
 ```
 
-For a CPU-only machine, install torch from PyTorch's CPU index first
-(`pip install torch --index-url https://download.pytorch.org/whl/cpu`). The
-default wheel pulls in roughly 4 GB of CUDA libraries this app never uses.
+Open `http://localhost:7860`.
+
+The first upload downloads the embedding model (about 90 MB) and caches it under
+`~/.cache/huggingface`, so it only happens once.
 
 ## Usage
 
