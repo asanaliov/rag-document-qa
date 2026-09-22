@@ -25,16 +25,16 @@ Question -> Embed -> Similarity search -> Top-k chunks -> LLM -> Answer
 
 ## Tech stack
 
-| Component | Technology |
-|---|---|
-| Framework | LangChain (LCEL) |
-| Vector store | FAISS |
-| Embeddings | sentence-transformers (`all-MiniLM-L6-v2`) |
-| LLM | Ollama (`llama3.2:3b` by default) |
-| UI | Gradio |
-| Document parsing | pypdf, LangChain TextLoader |
-| Tests / lint | pytest, ruff, GitHub Actions |
-| Packaging | Docker Compose (app + Ollama) |
+| Component        | Technology                                 |
+| ---------------- | ------------------------------------------ |
+| Framework        | LangChain (LCEL)                           |
+| Vector store     | FAISS                                      |
+| Embeddings       | sentence-transformers (`all-MiniLM-L6-v2`) |
+| LLM              | Ollama (`llama3.2:3b` by default)          |
+| UI               | Gradio                                     |
+| Document parsing | pypdf, LangChain TextLoader                |
+| Tests / lint     | pytest, ruff, GitHub Actions               |
+| Packaging        | Docker Compose (app + Ollama)              |
 
 ## Run with Docker
 
@@ -106,17 +106,17 @@ The first upload downloads the embedding model (about 90 MB) and caches it under
 
 Copy `.env.example` to `.env` to override any default. Every setting is read once at startup by `rag/config.py`.
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `OLLAMA_MODEL` | `llama3.2:3b` | Generation model |
-| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama endpoint |
-| `EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | Sentence-transformer model |
-| `EMBEDDING_DEVICE` | `cpu` | Set to `cuda` to embed on GPU |
-| `CHUNK_SIZE` / `CHUNK_OVERLAP` | `1000` / `200` | Splitter settings |
-| `RETRIEVAL_K` | `4` | Chunks retrieved per question |
-| `MAX_UPLOAD_MB` | `25` | Upload size limit |
-| `SERVER_HOST` / `SERVER_PORT` | `127.0.0.1` / `7860` | Bind address |
-| `LOG_LEVEL` | `INFO` | Root log level |
+| Variable                       | Default                  | Purpose                       |
+| ------------------------------ | ------------------------ | ----------------------------- |
+| `OLLAMA_MODEL`                 | `llama3.2:3b`            | Generation model              |
+| `OLLAMA_BASE_URL`              | `http://localhost:11434` | Ollama endpoint               |
+| `EMBEDDING_MODEL`              | `all-MiniLM-L6-v2`       | Sentence-transformer model    |
+| `EMBEDDING_DEVICE`             | `cpu`                    | Set to `cuda` to embed on GPU |
+| `CHUNK_SIZE` / `CHUNK_OVERLAP` | `1000` / `200`           | Splitter settings             |
+| `RETRIEVAL_K`                  | `4`                      | Chunks retrieved per question |
+| `MAX_UPLOAD_MB`                | `25`                     | Upload size limit             |
+| `SERVER_HOST` / `SERVER_PORT`  | `127.0.0.1` / `7860`     | Bind address                  |
+| `LOG_LEVEL`                    | `INFO`                   | Root log level                |
 
 ## Development
 
