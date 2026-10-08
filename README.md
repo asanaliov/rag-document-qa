@@ -4,9 +4,45 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-Upload a document and ask questions about it in plain language. The app chunks the document, embeds it into a vector store, retrieves the most relevant passages for each question, and has a local LLM answer using only those passages — with the retrieved text shown alongside the answer so you can check it.
+Upload a document and ask questions about it.
+The app chunks the document, embeds it into a vector store, retrieves the most relevant passages for each question, and answers using only those passages.
+The retrieved text is shown alongside every answer so you can verify it.
 
-Retrieval and generation both run on your machine: no API keys, no usage costs, and documents never leave the host.
+Everything runs locally - no API keys, no usage costs, documents never leave your machine.
+
+## Quickstart (Docker - recommended)
+
+**Step 1:** Install [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/).
+
+**Step 2:** Clone and start the stack.
+
+```bash
+git clone https://github.com/asanaliov/rag-document-qa.git
+cd rag-document-qa
+docker compose up
+```
+
+**Step 3:** Open [http://localhost:7860](http://localhost:7860).
+
+> **First start:** Docker downloads the Ollama image and pulls the model (~2 GB).
+> This takes a few minutes once and is cached in a named volume for all future starts.
+> After `docker compose up` shows `Uvicorn running`, the UI is ready.
+> The model status banner in the UI shows when the LLM is loaded and ready to answer.
+
+```bash
+# Subsequent starts are fast - model is already cached
+docker compose up
+
+# Rebuild after code changes
+docker compose up -d --build
+
+# View live logs
+docker compose logs -f app
+
+# Stop
+docker compose down          # keeps the model volume
+docker compose down -v       # also removes the model volume (re-downloads next time)
+```
 
 ## How it works
 
@@ -36,71 +72,63 @@ Question -> Embed -> Similarity search -> Top-k chunks -> LLM -> Answer
 | Tests / lint     | pytest, ruff, GitHub Actions               |
 | Packaging        | Docker Compose (app + Ollama)              |
 
-## Run with Docker
-
-The compose stack runs the app and Ollama as two containers, pulls the model on
-first start, and needs nothing installed but Docker.
-
-```bash
-git clone https://github.com/asanaliov/rag-document-qa.git
-cd rag-document-qa
-docker compose up
-```
-
-Open `http://localhost:7860`.
-
-First start downloads the model (about 2 GB) into a named volume; later starts
-reuse it. The embedding weights are baked into the image, so the app container
-itself needs no network beyond Ollama. To use a different model, set
-`OLLAMA_MODEL` in `.env` — compose reads it for both services.
-
-```bash
-docker compose up -d --build   # rebuild after code changes
-docker compose logs -f app
-docker compose down            # add -v to also drop the model volume
-```
-
-The app port is published on `127.0.0.1` only. Change it in `compose.yaml` to
-expose the UI on your network. Ollama runs on the CPU by default; `compose.yaml`
-has a commented GPU reservation block for machines with an NVIDIA runtime.
-
 ## Run without Docker
 
-Needs Python 3.10 or newer.
+Requires Python 3.10+.
 
 ```bash
 git clone https://github.com/asanaliov/rag-document-qa.git
 cd rag-document-qa
 
 python3 -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 
-# Optional, and worth it on a machine without an NVIDIA GPU: the default torch
-# wheel pulls in roughly 4 GB of CUDA libraries this app never uses.
+# CPU-only torch saves ~4 GB vs the default CUDA wheel (skip if you have a GPU)
 pip install torch --index-url https://download.pytorch.org/whl/cpu
 
 pip install -r requirements.txt
+```
 
-# Ollama provides the local LLM runtime.
-# On Windows, install it from https://ollama.com/download instead.
+**Install and start Ollama** (the local LLM runtime):
+
+```bash
+# Linux / macOS
 curl -fsSL https://ollama.com/install.sh | sh
-ollama pull llama3.2:3b
 
-ollama serve      # skip if Ollama already runs as a service
+# Windows: download the installer at https://ollama.com/download
+```
+
+**Pull the model** (one-time, ~2 GB download):
+
+```bash
+ollama pull llama3.2:3b
+```
+
+**Start the app:**
+
+```bash
+# Terminal 1 - keep this running
+ollama serve
+
+# Terminal 2
 python app.py
 ```
 
-Open `http://localhost:7860`.
+Open [http://localhost:7860](http://localhost:7860).
 
-The first upload downloads the embedding model (about 90 MB) and caches it under
-`~/.cache/huggingface`, so it only happens once.
+> **Startup note:** When the app starts it sends a warm-up request to Ollama in the background so the model is already loaded into RAM before you ask your first question.
+> Watch the status banner at the top of the UI - it turns green once the model is ready.
+> The embedding model (~90 MB) downloads automatically on first use and is cached under `~/.cache/huggingface`.
+
+
 
 ## Usage
 
-1. Upload a PDF, TXT, or MD file — it is chunked and indexed automatically (the first upload also loads the embedding model, so give it a moment)
-2. Ask a question and press Enter
-3. Expand **Retrieved passages** to see exactly which chunks the answer came from
-4. Upload a new file at any time to start over on a different document
+1. Upload a PDF, TXT, or MD file - it is chunked and indexed automatically
+2. Wait for the model status banner to turn green (warm-up takes a few seconds on first start)
+3. Ask a question and press **Enter** or click **Send**
+4. The **Retrieved Passages** section below the chat shows which chunks the answer came from
+5. Upload a new file at any time to switch documents
 
 ## Configuration
 
