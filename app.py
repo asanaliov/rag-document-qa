@@ -27,47 +27,73 @@ WARMUP_READY = "ready"
 WARMUP_FAILED = "failed"
 
 CSS = """
-.gradio-container { max-width: 1440px !important; margin: 0 auto !important; }
-footer { display: none !important; }
-.app-header {
-  display: flex; align-items: end; justify-content: space-between; gap: 1.5rem;
-  padding: 2rem 0 1.4rem; border-bottom: 1px solid var(--border-color-primary);
-  margin-bottom: 1.5rem;
+.gradio-container {
+  max-width: 1480px !important;
+  margin: 0 auto !important;
+  background: #f5f3ed !important;
+  color: #202622 !important;
 }
-.app-title { font-size: clamp(1.8rem, 3vw, 2.5rem); line-height: 1.05; letter-spacing: -.04em; font-weight: 700; margin: 0 0 .55rem; }
-.app-subtitle { font-size: 1rem; line-height: 1.55; opacity: .68; margin: 0; max-width: 42rem; }
-.app-badges { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: flex-end; }
-.app-badges span { font-size: .75rem; padding: .4rem .7rem; border: 1px solid var(--border-color-primary); border-radius: .55rem; white-space: nowrap; }
-.warmup-banner { display: flex; align-items: center; gap: .65rem; padding: .8rem 1rem; border-radius: .75rem; font-size: .9rem; font-weight: 500; margin-bottom: 1.2rem; }
-.warmup-banner.pending { background: #fff8e7; color: #805512; border: 1px solid #f1d9a5; }
-.warmup-banner.ready { background: #edf7f0; color: #286044; border: 1px solid #c6e2d0; }
-.warmup-banner.failed { background: #fff0ed; color: #8c382d; border: 1px solid #efc9c1; }
-.warmup-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.warmup-dot.pending { background: #c88b23; animation: pulse-dot 1.4s infinite; }
-.warmup-dot.ready { background: #39845b; }
-.warmup-dot.failed { background: #bd5142; }
+body { background: #f5f3ed !important; }
+footer { display: none !important; }
+#document-app { --ink: #202622; --muted: #727a73; --line: #deded3; --paper: #fbfaf6; --green: #28614d; }
+#document-app .app-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1.25rem 0; border-bottom: 1px solid var(--line);
+}
+#document-app .brand { display: flex; align-items: center; gap: .7rem; color: var(--ink); font-size: .95rem; font-weight: 650; letter-spacing: -.02em; }
+#document-app .brand-mark { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: .65rem; color: #f7f5ef; background: var(--green); font-family: Georgia, serif; font-size: 1.2rem; }
+#document-app .privacy-note { color: var(--muted); font-size: .76rem; letter-spacing: .08em; text-transform: uppercase; }
+#document-app .hero { padding: clamp(2rem, 5vw, 4.5rem) 0 2rem; }
+#document-app .eyebrow, #document-app .section-kicker { color: var(--green); font-size: .72rem; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; }
+#document-app .hero h1 { max-width: 850px; margin: .65rem 0 .8rem; color: var(--ink); font-family: Georgia, 'Times New Roman', serif; font-size: clamp(2.65rem, 6vw, 5.25rem); font-weight: 500; letter-spacing: -.055em; line-height: .99; text-wrap: balance; }
+#document-app .hero p { max-width: 620px; margin: 0; color: var(--muted); font-size: 1.04rem; line-height: 1.7; }
+#document-app .warmup-banner { display: flex; align-items: center; gap: .7rem; padding: .85rem 1rem; border: 1px solid var(--line); border-radius: .8rem; background: rgba(251,250,246,.76); color: var(--muted); font-size: .86rem; margin: 0 0 1.2rem; }
+#document-app .warmup-banner.pending { border-color: #e8d4aa; color: #765a28; }
+#document-app .warmup-banner.ready { border-color: #c7d9ca; color: #315d46; }
+#document-app .warmup-banner.failed { border-color: #e7c4ba; color: #88483a; }
+#document-app .warmup-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+#document-app .warmup-dot.pending { background: #bf8a31; animation: pulse-dot 1.4s infinite; }
+#document-app .warmup-dot.ready { background: #42805d; }
+#document-app .warmup-dot.failed { background: #b65b48; }
 @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
-.setup-panel { padding: 1rem 1.15rem; margin-bottom: 1.2rem; border: 1px solid var(--border-color-primary); border-radius: .9rem; background: var(--block-background-fill); }
-.section-label { font-size: .78rem; font-weight: 650; letter-spacing: .04em; opacity: .65; margin: 0 0 .65rem; }
-.document-status { font-size: .9rem; line-height: 1.5; }
-.chat-panel { min-width: 0; }
-.chat-panel .bubble-wrap { padding: 1.1rem; }
-.chat-panel .sources-header { font-size: .78rem; font-weight: 650; opacity: .65; letter-spacing: .04em; margin: 1.15rem 0 .55rem; }
-.app-footer { opacity: .5; font-size: .78rem; padding: 1rem 0 .4rem; border-top: 1px solid var(--border-color-primary); margin-top: 1.5rem; }
-button, input, textarea { transition: background-color .18s ease, border-color .18s ease, transform .18s ease; }
-button:active { transform: translateY(1px); }
-button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid #8196b8; outline-offset: 2px; }
+#document-app #ingest-card { padding: 1.25rem; margin-bottom: 1.25rem; border: 1px solid var(--line); border-radius: 1rem; background: var(--paper); box-shadow: 0 10px 35px rgba(49, 57, 48, .035); }
+#document-app .upload-copy { padding: .25rem .4rem; }
+#document-app .upload-copy h2 { margin: .5rem 0 .45rem; font-family: Georgia, 'Times New Roman', serif; font-size: 1.45rem; font-weight: 500; letter-spacing: -.025em; }
+#document-app .upload-copy p { max-width: 28rem; margin: 0; color: var(--muted); font-size: .88rem; line-height: 1.6; }
+#document-app #ingest-card .document-status { margin-top: .75rem; color: var(--green); font-size: .9rem; }
+#document-app #ingest-card .file-preview { border-color: var(--line) !important; border-radius: .75rem !important; background: #f6f5ef !important; }
+#document-app #conversation { padding: 1.3rem; border: 1px solid var(--line); border-radius: 1rem; background: var(--paper); box-shadow: 0 12px 42px rgba(49, 57, 48, .045); }
+#document-app .conversation-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .1rem .25rem 1rem; }
+#document-app .conversation-heading h2 { margin: .35rem 0 0; color: var(--ink); font-family: Georgia, 'Times New Roman', serif; font-size: 1.6rem; font-weight: 500; letter-spacing: -.03em; }
+#document-app #chat-window { border: 0 !important; border-radius: .7rem !important; background: #f5f3ed !important; }
+#document-app #chat-window .bubble-wrap { padding: 1.1rem; }
+#document-app #composer { margin-top: .9rem; padding: .45rem; border: 1px solid #d8d9ce; border-radius: .85rem; background: #fffefa; }
+#document-app #composer textarea { border: 0 !important; background: transparent !important; box-shadow: none !important; }
+#document-app #send-button { min-height: 2.8rem; border-radius: .65rem !important; background: var(--green) !important; color: white !important; }
+#document-app #send-button:hover { background: #204f3e !important; }
+#document-app .composer-hint { padding: .35rem .4rem 0; color: var(--muted); font-size: .76rem; }
+#document-app .evidence-heading { display: flex; align-items: baseline; gap: .7rem; margin: 1.5rem .25rem .65rem; }
+#document-app .evidence-heading h3 { margin: 0; color: var(--ink); font-size: .88rem; font-weight: 650; }
+#document-app .evidence-heading span { color: var(--muted); font-size: .78rem; }
+#document-app #sources-panel { padding: .75rem 1rem; border-left: 2px solid #9ab5a0; border-radius: 0 .65rem .65rem 0; background: #f5f3ed; color: #4d554f; font-size: .88rem; line-height: 1.7; }
+#document-app #sources-panel blockquote { margin: .4rem 0 1rem; padding-left: .8rem; border-left: 1px solid #c9cec3; color: #646b64; }
+#document-app .app-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem 1rem; padding: 1.1rem .2rem 2rem; color: var(--muted); font-size: .74rem; }
+#document-app button, #document-app input, #document-app textarea { transition: background-color .18s ease, border-color .18s ease, transform .18s ease; }
+#document-app button:active { transform: translateY(1px); }
+#document-app button:focus-visible, #document-app input:focus-visible, #document-app textarea:focus-visible { outline: 3px solid #74927f; outline-offset: 2px; }
 @media (max-width: 700px) {
-  .app-header { align-items: flex-start; flex-direction: column; padding-top: 1.2rem; }
-  .app-badges { justify-content: flex-start; }
-  .setup-panel { padding: .85rem; }
+  #document-app .app-topbar { padding: 1rem 0; }
+  #document-app .privacy-note { max-width: 10rem; text-align: right; line-height: 1.5; }
+  #document-app .hero { padding: 2.2rem 0 1.5rem; }
+  #document-app #ingest-card, #document-app #conversation { padding: .8rem; }
+  #document-app .conversation-heading { align-items: flex-start; }
 }
 """
 
 THEME = gr.themes.Soft(
-    primary_hue="blue",
-    neutral_hue="slate",
-    radius_size="md",
+    primary_hue="green",
+    neutral_hue="stone",
+    radius_size="lg",
     font=gr.themes.Default(),
 )
 
@@ -151,6 +177,7 @@ def build_ui(qa: DocumentQA, warmup_state: list[str]) -> gr.Blocks:
 
     model_name = qa.settings.ollama_model
     embed_name = qa.settings.embedding_model
+
     def index_document(file):
         if file is None:
             qa.reset()
@@ -198,84 +225,86 @@ def build_ui(qa: DocumentQA, warmup_state: list[str]) -> gr.Blocks:
         return warmup_html(warmup_state[0], model_name)
 
     with gr.Blocks(
-        title="RAG Document Q&A",
+        title="Folio - document questions, with sources",
         analytics_enabled=False,
         theme=THEME,
         css=CSS,
+        elem_id="document-app",
     ) as ui:
-
-        # ---- header ----
         gr.HTML(
-            '<div class="app-header">'
-            "<div>"
-            '<p class="app-title">Ask your documents.</p>'
-            '<p class="app-subtitle">'
-            "Upload a file, ask a question, and check the passages behind every answer."
-            "</p>"
-            "</div>"
-            '<div class="app-badges">'
-            "<span>Runs locally</span>"
-            "<span>No API keys</span>"
-            "<span>Cited answers</span>"
-            "</div>"
-            "</div>"
+            '<header class="app-topbar">'
+            '<div class="brand"><span class="brand-mark">f</span><span>folio / document studio</span></div>'
+            '<span class="privacy-note">Private by default · runs on your machine</span>'
+            '</header>'
+            '<section class="hero">'
+            '<div class="eyebrow">A quieter way to read</div>'
+            '<h1>The answer is already in your files.</h1>'
+            '<p>Bring in a document, ask a plain question, and follow every answer back to the text that supports it.</p>'
+            '</section>'
         )
 
-        # ---- model warmup banner (auto-refreshes every 2 s until ready) ----
         warmup_banner = gr.HTML(warmup_html(warmup_state[0], model_name))
         warmup_timer = gr.Timer(value=2, active=True)
 
-        with gr.Column(elem_classes=["setup-panel"]):
-            gr.HTML('<p class="section-label">1 / ADD A DOCUMENT</p>')
+        with gr.Column(elem_id="ingest-card"):
             with gr.Row(equal_height=False):
+                with gr.Column(scale=2, min_width=230, elem_classes=["upload-copy"]):
+                    gr.HTML(
+                        '<div class="section-kicker">01 / Start with a file</div>'
+                        '<h2>What are we reading?</h2>'
+                        '<p>PDF, text, or Markdown. Your document is processed locally and can be replaced at any time.</p>'
+                    )
+                    doc_status = gr.Markdown(f"*{IDLE_STATUS}*", elem_classes=["document-status"])
                 file_input = gr.File(
-                    label=f"Choose a PDF, TXT, or Markdown file · up to {qa.settings.max_upload_mb} MB",
+                    label=f"Drop a file here or browse · up to {qa.settings.max_upload_mb} MB",
                     file_types=list(SUPPORTED_EXTENSIONS),
-                    height=105,
+                    height=135,
                     scale=3,
                 )
-                with gr.Column(scale=2, min_width=220):
-                    gr.HTML('<p class="section-label">DOCUMENT STATUS</p>')
-                    doc_status = gr.Markdown(f"*{IDLE_STATUS}*", elem_classes=["document-status"])
-                    gr.Markdown("Your file stays on this machine.")
 
-        with gr.Row(equal_height=False):
-            with gr.Column(scale=1, elem_classes=["chat-panel"]):
-                gr.HTML('<p class="section-label">2 / ASK A QUESTION</p>')
-                chatbot = gr.Chatbot(
-                    height=540,
-                    show_label=False,
-                    type="messages",
-                    placeholder=(
-                        "<div style='text-align:center;opacity:.5;padding:3rem 1rem'>"
-                        "<p style='font-size:2rem'>💬</p>"
-                        "<p>Add a document above, then ask a specific question.</p>"
-                        "</div>"
-                    ),
+        with gr.Column(elem_id="conversation"):
+            with gr.Row(elem_classes=["conversation-heading"]):
+                gr.HTML(
+                    '<div><div class="section-kicker">02 / Explore the text</div>'
+                    '<h2>Your conversation</h2></div>'
                 )
+                clear_btn = gr.Button("Clear", size="sm", variant="secondary")
 
-                with gr.Row():
-                    question = gr.Textbox(
-                        show_label=False,
-                        placeholder="What would you like to find in this document?",
-                        scale=5,
-                        container=False,
-                        autofocus=True,
-                    )
-                    submit_btn = gr.Button("Send", variant="primary", scale=1, min_width=80)
+            chatbot = gr.Chatbot(
+                height=480,
+                show_label=False,
+                type="messages",
+                elem_id="chat-window",
+                placeholder=(
+                    "<div style='text-align:center;padding:5rem 1rem;color:#727a73'>"
+                    "<p style='font-family:Georgia,serif;font-size:1.45rem;color:#202622'>A good question opens a document.</p>"
+                    "<p>Add a file above to begin. Try asking for a summary, a date, or a specific detail.</p>"
+                    "</div>"
+                ),
+            )
 
-                clear_btn = gr.Button("Clear conversation", size="sm", variant="secondary")
+            with gr.Row(elem_id="composer"):
+                question = gr.Textbox(
+                    show_label=False,
+                    placeholder="Ask about a detail, a claim, or the whole document...",
+                    scale=6,
+                    container=False,
+                    autofocus=True,
+                )
+                submit_btn = gr.Button("Ask  ↗", variant="primary", scale=1, min_width=100, elem_id="send-button")
+            gr.HTML('<div class="composer-hint">Press Enter to ask · Answers are grounded in the passages below</div>')
 
-                # Sources are always visible - no accordion hiding them
-                gr.HTML('<p class="sources-header">PASSAGES USED FOR THE ANSWER</p>')
-                sources = gr.Markdown(f"*{NO_SOURCES}*")
+            gr.HTML(
+                '<div class="evidence-heading"><h3>Text behind the answer</h3>'
+                '<span>Retrieved passages, ready to check</span></div>'
+            )
+            sources = gr.Markdown(f"*{NO_SOURCES}*", elem_id="sources-panel")
 
-        # ---- footer ----
         gr.HTML(
-            '<div class="app-footer">'
-            f"Embeddings: {embed_name} &middot; "
-            f"LLM: {model_name} via Ollama &middot; Vector store: FAISS"
-            "</div>"
+            '<footer class="app-footer">'
+            '<span>Local document workspace</span>'
+            f'<span>{model_name} via Ollama · {embed_name} embeddings · FAISS retrieval</span>'
+            '</footer>'
         )
 
         # ---- event wiring ----
