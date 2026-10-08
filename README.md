@@ -10,39 +10,24 @@ The retrieved text is shown alongside every answer so you can verify it.
 
 Everything runs locally - no API keys, no usage costs, documents never leave your machine.
 
-## Quickstart (Docker - recommended)
+## Quickstart (Docker)
 
-**Step 1:** Install [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/).
-
-**Step 2:** Clone and start the stack.
+Install [Docker Desktop](https://docs.docker.com/get-docker/) with Compose, then run:
 
 ```bash
 git clone https://github.com/asanaliov/rag-document-qa.git
 cd rag-document-qa
-docker compose up
+docker compose up -d
 ```
 
-**Step 3:** Open [http://localhost:7860](http://localhost:7860).
+On the first run, Docker downloads the app image and the default Ollama model (about 2 GB).
+The app starts when the model download finishes, and the UI shows when the model is ready.
 
-> **First start:** Docker downloads the Ollama image and pulls the model (~2 GB).
-> This takes a few minutes once and is cached in a named volume for all future starts.
-> After `docker compose up` shows `Uvicorn running`, the UI is ready.
-> The model status banner in the UI shows when the LLM is loaded and ready to answer.
-
-```bash
-# Subsequent starts are fast - model is already cached
-docker compose up
-
-# Rebuild after code changes
-docker compose up -d --build
-
-# View live logs
-docker compose logs -f app
-
-# Stop
-docker compose down          # keeps the model volume
-docker compose down -v       # also removes the model volume (re-downloads next time)
-```
+On later runs, start the app with `docker compose up -d` and stop it with `docker compose down`.
+Both the model and downloaded embedding files stay cached between starts.
+To see startup progress, run `docker compose logs -f app` and press Ctrl+C to stop following logs.
+To rebuild the app after changing code, run `docker compose up -d --build`.
+Avoid `docker compose down -v` unless you want to delete the cached model and download it again.
 
 ## How it works
 

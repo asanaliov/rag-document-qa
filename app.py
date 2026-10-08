@@ -27,74 +27,48 @@ WARMUP_READY = "ready"
 WARMUP_FAILED = "failed"
 
 CSS = """
-/* ---- layout ---- */
-.gradio-container { max-width: 1200px !important; margin: 0 auto !important; }
+.gradio-container { max-width: 1440px !important; margin: 0 auto !important; }
 footer { display: none !important; }
-
-/* ---- header ---- */
 .app-header {
-  display: flex; align-items: center; gap: 1rem;
-  padding: 1.25rem 0 1rem;
-  border-bottom: 1px solid var(--border-color-primary);
-  margin-bottom: 1.25rem;
+  display: flex; align-items: end; justify-content: space-between; gap: 1.5rem;
+  padding: 2rem 0 1.4rem; border-bottom: 1px solid var(--border-color-primary);
+  margin-bottom: 1.5rem;
 }
-.app-title { font-size: 1.5rem; font-weight: 700; margin: 0; }
-.app-subtitle { font-size: .9rem; opacity: .6; margin: 0; }
-.app-badges {
-  display: flex; gap: .5rem; margin-left: auto; flex-wrap: wrap; justify-content: flex-end;
-}
-.app-badges span {
-  font-size: .75rem; padding: .2rem .65rem; border-radius: 999px;
-  background: var(--color-accent-soft); color: var(--color-accent); white-space: nowrap;
-}
-
-/* ---- warmup banner ---- */
-.warmup-banner {
-  display: flex; align-items: center; gap: .6rem;
-  padding: .6rem 1rem; border-radius: var(--block-radius);
-  font-size: .875rem; font-weight: 500; margin-bottom: 1rem;
-}
-.warmup-banner.pending { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
-.warmup-banner.ready   { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
-.warmup-banner.failed  { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+.app-title { font-size: clamp(1.8rem, 3vw, 2.5rem); line-height: 1.05; letter-spacing: -.04em; font-weight: 700; margin: 0 0 .55rem; }
+.app-subtitle { font-size: 1rem; line-height: 1.55; opacity: .68; margin: 0; max-width: 42rem; }
+.app-badges { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: flex-end; }
+.app-badges span { font-size: .75rem; padding: .4rem .7rem; border: 1px solid var(--border-color-primary); border-radius: .55rem; white-space: nowrap; }
+.warmup-banner { display: flex; align-items: center; gap: .65rem; padding: .8rem 1rem; border-radius: .75rem; font-size: .9rem; font-weight: 500; margin-bottom: 1.2rem; }
+.warmup-banner.pending { background: #fff8e7; color: #805512; border: 1px solid #f1d9a5; }
+.warmup-banner.ready { background: #edf7f0; color: #286044; border: 1px solid #c6e2d0; }
+.warmup-banner.failed { background: #fff0ed; color: #8c382d; border: 1px solid #efc9c1; }
 .warmup-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.warmup-dot.pending { background: #f59e0b; animation: pulse-dot 1.4s infinite; }
-.warmup-dot.ready   { background: #10b981; }
-.warmup-dot.failed  { background: #ef4444; }
+.warmup-dot.pending { background: #c88b23; animation: pulse-dot 1.4s infinite; }
+.warmup-dot.ready { background: #39845b; }
+.warmup-dot.failed { background: #bd5142; }
 @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
-
-/* ---- sidebar ---- */
-.sidebar-card {
-  background: var(--block-background-fill);
-  border: 1px solid var(--border-color-primary);
-  border-radius: var(--block-radius);
-  padding: .9rem 1rem;
-}
-.sidebar-card h3 {
-  font-size: .8rem; font-weight: 600; margin: 0 0 .5rem;
-  opacity: .7; text-transform: uppercase; letter-spacing: .05em;
-}
-
-/* ---- sources panel ---- */
-.sources-header {
-  font-size: .8rem; font-weight: 600; opacity: .6;
-  text-transform: uppercase; letter-spacing: .05em; margin-bottom: .4rem;
-}
-
-/* ---- footer ---- */
-.app-footer {
-  text-align: center; opacity: .45; font-size: .78rem;
-  padding: 1rem 0 .5rem;
-  border-top: 1px solid var(--border-color-primary);
-  margin-top: 1.25rem;
+.setup-panel { padding: 1rem 1.15rem; margin-bottom: 1.2rem; border: 1px solid var(--border-color-primary); border-radius: .9rem; background: var(--block-background-fill); }
+.section-label { font-size: .78rem; font-weight: 650; letter-spacing: .04em; opacity: .65; margin: 0 0 .65rem; }
+.document-status { font-size: .9rem; line-height: 1.5; }
+.chat-panel { min-width: 0; }
+.chat-panel .bubble-wrap { padding: 1.1rem; }
+.chat-panel .sources-header { font-size: .78rem; font-weight: 650; opacity: .65; letter-spacing: .04em; margin: 1.15rem 0 .55rem; }
+.app-footer { opacity: .5; font-size: .78rem; padding: 1rem 0 .4rem; border-top: 1px solid var(--border-color-primary); margin-top: 1.5rem; }
+button, input, textarea { transition: background-color .18s ease, border-color .18s ease, transform .18s ease; }
+button:active { transform: translateY(1px); }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid #8196b8; outline-offset: 2px; }
+@media (max-width: 700px) {
+  .app-header { align-items: flex-start; flex-direction: column; padding-top: 1.2rem; }
+  .app-badges { justify-content: flex-start; }
+  .setup-panel { padding: .85rem; }
 }
 """
 
 THEME = gr.themes.Soft(
-    primary_hue="violet",
+    primary_hue="blue",
     neutral_hue="slate",
     radius_size="md",
-    font=gr.themes.GoogleFont("Inter"),
+    font=gr.themes.Default(),
 )
 
 
@@ -177,8 +151,6 @@ def build_ui(qa: DocumentQA, warmup_state: list[str]) -> gr.Blocks:
 
     model_name = qa.settings.ollama_model
     embed_name = qa.settings.embedding_model
-    ext_list = ", ".join(sorted(SUPPORTED_EXTENSIONS))
-
     def index_document(file):
         if file is None:
             qa.reset()
@@ -236,9 +208,9 @@ def build_ui(qa: DocumentQA, warmup_state: list[str]) -> gr.Blocks:
         gr.HTML(
             '<div class="app-header">'
             "<div>"
-            '<p class="app-title">RAG Document Q&amp;A</p>'
+            '<p class="app-title">Ask your documents.</p>'
             '<p class="app-subtitle">'
-            "Ask questions about your documents, answered from their text only"
+            "Upload a file, ask a question, and check the passages behind every answer."
             "</p>"
             "</div>"
             '<div class="app-badges">'
@@ -253,45 +225,31 @@ def build_ui(qa: DocumentQA, warmup_state: list[str]) -> gr.Blocks:
         warmup_banner = gr.HTML(warmup_html(warmup_state[0], model_name))
         warmup_timer = gr.Timer(value=2, active=True)
 
-        with gr.Row(equal_height=False):
-
-            # ---- left sidebar ----
-            with gr.Column(scale=1, min_width=290):
-                gr.HTML('<div class="sidebar-card"><h3>Document</h3></div>')
+        with gr.Column(elem_classes=["setup-panel"]):
+            gr.HTML('<p class="section-label">1 / ADD A DOCUMENT</p>')
+            with gr.Row(equal_height=False):
                 file_input = gr.File(
-                    label=f"Upload file ({ext_list})",
+                    label=f"Choose a PDF, TXT, or Markdown file · up to {qa.settings.max_upload_mb} MB",
                     file_types=list(SUPPORTED_EXTENSIONS),
-                    height=150,
+                    height=105,
+                    scale=3,
                 )
-                doc_status = gr.Markdown(f"*{IDLE_STATUS}*")
+                with gr.Column(scale=2, min_width=220):
+                    gr.HTML('<p class="section-label">DOCUMENT STATUS</p>')
+                    doc_status = gr.Markdown(f"*{IDLE_STATUS}*", elem_classes=["document-status"])
+                    gr.Markdown("Your file stays on this machine.")
 
-                with gr.Accordion("How it works", open=False):
-                    gr.Markdown(
-                        "1. Document is split into overlapping chunks\n"
-                        "2. Each chunk is embedded into a FAISS vector index\n"
-                        "3. Your question retrieves the most similar chunks\n"
-                        "4. A local LLM answers using only those chunks\n\n"
-                        "*Sources are shown below the chat so you can verify every answer.*"
-                    )
-
-                with gr.Accordion("Tips", open=False):
-                    gr.Markdown(
-                        "- Ask specific questions, not vague ones\n"
-                        "- If the answer is not in the document, the model says so\n"
-                        "- Upload a new file at any time to switch documents\n"
-                        f"- Max file size: {qa.settings.max_upload_mb} MB"
-                    )
-
-            # ---- right: chat + sources ----
-            with gr.Column(scale=2):
+        with gr.Row(equal_height=False):
+            with gr.Column(scale=1, elem_classes=["chat-panel"]):
+                gr.HTML('<p class="section-label">2 / ASK A QUESTION</p>')
                 chatbot = gr.Chatbot(
-                    height=420,
+                    height=540,
                     show_label=False,
                     type="messages",
                     placeholder=(
                         "<div style='text-align:center;opacity:.5;padding:3rem 1rem'>"
                         "<p style='font-size:2rem'>💬</p>"
-                        "<p>Upload a document on the left, then ask anything about it.</p>"
+                        "<p>Add a document above, then ask a specific question.</p>"
                         "</div>"
                     ),
                 )
@@ -299,17 +257,17 @@ def build_ui(qa: DocumentQA, warmup_state: list[str]) -> gr.Blocks:
                 with gr.Row():
                     question = gr.Textbox(
                         show_label=False,
-                        placeholder="Ask something about the document...",
+                        placeholder="What would you like to find in this document?",
                         scale=5,
                         container=False,
                         autofocus=True,
                     )
                     submit_btn = gr.Button("Send", variant="primary", scale=1, min_width=80)
 
-                clear_btn = gr.Button("Clear chat", size="sm", variant="secondary")
+                clear_btn = gr.Button("Clear conversation", size="sm", variant="secondary")
 
                 # Sources are always visible - no accordion hiding them
-                gr.HTML('<p class="sources-header">Retrieved Passages</p>')
+                gr.HTML('<p class="sources-header">PASSAGES USED FOR THE ANSWER</p>')
                 sources = gr.Markdown(f"*{NO_SOURCES}*")
 
         # ---- footer ----
