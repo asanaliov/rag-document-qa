@@ -35,57 +35,244 @@ CSS = """
 }
 body { background: #f5f3ed !important; }
 footer { display: none !important; }
-#document-app { --ink: #202622; --muted: #727a73; --line: #deded3; --paper: #fbfaf6; --green: #28614d; }
+#document-app {
+  --ink: #202622;
+  --muted: #727a73;
+  --line: #deded3;
+  --paper: #fbfaf6;
+  --green: #28614d;
+}
 #document-app .app-topbar {
   display: flex; align-items: center; justify-content: space-between;
   padding: 1.25rem 0; border-bottom: 1px solid var(--line);
 }
-#document-app .brand { display: flex; align-items: center; gap: .7rem; color: var(--ink); font-size: .95rem; font-weight: 650; letter-spacing: -.02em; }
-#document-app .brand-mark { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: .65rem; color: #f7f5ef; background: var(--green); font-family: Georgia, serif; font-size: 1.2rem; }
-#document-app .privacy-note { color: var(--muted); font-size: .76rem; letter-spacing: .08em; text-transform: uppercase; }
+#document-app .brand {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  color: var(--ink);
+  font-size: .95rem;
+  font-weight: 650;
+  letter-spacing: -.02em;
+}
+#document-app .brand-mark {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: .65rem;
+  color: #f7f5ef;
+  background: var(--green);
+  font-family: Georgia, serif;
+  font-size: 1.2rem;
+}
+#document-app .privacy-note {
+  color: var(--muted);
+  font-size: .76rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
 #document-app .hero { padding: clamp(2rem, 5vw, 4.5rem) 0 2rem; }
-#document-app .eyebrow, #document-app .section-kicker { color: var(--green); font-size: .72rem; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; }
-#document-app .hero h1 { max-width: 850px; margin: .65rem 0 .8rem; color: var(--ink); font-family: Georgia, 'Times New Roman', serif; font-size: clamp(2.65rem, 6vw, 5.25rem); font-weight: 500; letter-spacing: -.055em; line-height: .99; text-wrap: balance; }
-#document-app .hero p { max-width: 620px; margin: 0; color: var(--muted); font-size: 1.04rem; line-height: 1.7; }
-#document-app .warmup-banner { display: flex; align-items: center; gap: .7rem; padding: .85rem 1rem; border: 1px solid var(--line); border-radius: .8rem; background: rgba(251,250,246,.76); color: var(--muted); font-size: .86rem; margin: 0 0 1.2rem; }
+#document-app .eyebrow,
+#document-app .section-kicker {
+  color: var(--green);
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+#document-app .hero h1 {
+  max-width: 850px;
+  margin: .65rem 0 .8rem;
+  color: var(--ink);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(2.65rem, 6vw, 5.25rem);
+  font-weight: 500;
+  letter-spacing: -.055em;
+  line-height: .99;
+  text-wrap: balance;
+}
+#document-app .hero p {
+  max-width: 620px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 1.04rem;
+  line-height: 1.7;
+}
+#document-app .warmup-banner {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  padding: .85rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: .8rem;
+  background: rgba(251,250,246,.76);
+  color: var(--muted);
+  font-size: .86rem;
+  margin: 0 0 1.2rem;
+}
 #document-app .warmup-banner.pending { border-color: #e8d4aa; color: #765a28; }
 #document-app .warmup-banner.ready { border-color: #c7d9ca; color: #315d46; }
 #document-app .warmup-banner.failed { border-color: #e7c4ba; color: #88483a; }
-#document-app .warmup-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-#document-app .warmup-dot.pending { background: #bf8a31; animation: pulse-dot 1.4s infinite; }
+#document-app .warmup-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+#document-app .warmup-dot.pending {
+  background: #bf8a31;
+  animation: pulse-dot 1.4s infinite;
+}
 #document-app .warmup-dot.ready { background: #42805d; }
 #document-app .warmup-dot.failed { background: #b65b48; }
-@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
-#document-app #ingest-card { padding: 1.25rem; margin-bottom: 1.25rem; border: 1px solid var(--line); border-radius: 1rem; background: var(--paper); box-shadow: 0 10px 35px rgba(49, 57, 48, .035); }
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .3; }
+}
+#document-app #ingest-card {
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--paper);
+  box-shadow: 0 10px 35px rgba(49, 57, 48, .035);
+}
 #document-app .upload-copy { padding: .25rem .4rem; }
-#document-app .upload-copy h2 { margin: .5rem 0 .45rem; font-family: Georgia, 'Times New Roman', serif; font-size: 1.45rem; font-weight: 500; letter-spacing: -.025em; }
-#document-app .upload-copy p { max-width: 28rem; margin: 0; color: var(--muted); font-size: .88rem; line-height: 1.6; }
-#document-app #ingest-card .document-status { margin-top: .75rem; color: var(--green); font-size: .9rem; }
-#document-app #ingest-card .file-preview { border-color: var(--line) !important; border-radius: .75rem !important; background: #f6f5ef !important; }
-#document-app #conversation { padding: 1.3rem; border: 1px solid var(--line); border-radius: 1rem; background: var(--paper); box-shadow: 0 12px 42px rgba(49, 57, 48, .045); }
-#document-app .conversation-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .1rem .25rem 1rem; }
-#document-app .conversation-heading h2 { margin: .35rem 0 0; color: var(--ink); font-family: Georgia, 'Times New Roman', serif; font-size: 1.6rem; font-weight: 500; letter-spacing: -.03em; }
-#document-app #chat-window { border: 0 !important; border-radius: .7rem !important; background: #f5f3ed !important; }
+#document-app .upload-copy h2 {
+  margin: .5rem 0 .45rem;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.45rem;
+  font-weight: 500;
+  letter-spacing: -.025em;
+}
+#document-app .upload-copy p {
+  max-width: 28rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: .88rem;
+  line-height: 1.6;
+}
+#document-app #ingest-card .document-status {
+  margin-top: .75rem;
+  color: var(--green);
+  font-size: .9rem;
+}
+#document-app #ingest-card .file-preview {
+  border-color: var(--line) !important;
+  border-radius: .75rem !important;
+  background: #f6f5ef !important;
+}
+#document-app #conversation {
+  padding: 1.3rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--paper);
+  box-shadow: 0 12px 42px rgba(49, 57, 48, .045);
+}
+#document-app .conversation-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .1rem .25rem 1rem;
+}
+#document-app .conversation-heading h2 {
+  margin: .35rem 0 0;
+  color: var(--ink);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.6rem;
+  font-weight: 500;
+  letter-spacing: -.03em;
+}
+#document-app #chat-window {
+  border: 0 !important;
+  border-radius: .7rem !important;
+  background: #f5f3ed !important;
+}
 #document-app #chat-window .bubble-wrap { padding: 1.1rem; }
-#document-app #composer { margin-top: .9rem; padding: .45rem; border: 1px solid #d8d9ce; border-radius: .85rem; background: #fffefa; }
-#document-app #composer textarea { border: 0 !important; background: transparent !important; box-shadow: none !important; }
-#document-app #send-button { min-height: 2.8rem; border-radius: .65rem !important; background: var(--green) !important; color: white !important; }
+#document-app #composer {
+  margin-top: .9rem;
+  padding: .45rem;
+  border: 1px solid #d8d9ce;
+  border-radius: .85rem;
+  background: #fffefa;
+}
+#document-app #composer textarea {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+#document-app #send-button {
+  min-height: 2.8rem;
+  border-radius: .65rem !important;
+  background: var(--green) !important;
+  color: white !important;
+}
 #document-app #send-button:hover { background: #204f3e !important; }
-#document-app .composer-hint { padding: .35rem .4rem 0; color: var(--muted); font-size: .76rem; }
-#document-app .evidence-heading { display: flex; align-items: baseline; gap: .7rem; margin: 1.5rem .25rem .65rem; }
-#document-app .evidence-heading h3 { margin: 0; color: var(--ink); font-size: .88rem; font-weight: 650; }
-#document-app .evidence-heading span { color: var(--muted); font-size: .78rem; }
-#document-app #sources-panel { padding: .75rem 1rem; border-left: 2px solid #9ab5a0; border-radius: 0 .65rem .65rem 0; background: #f5f3ed; color: #4d554f; font-size: .88rem; line-height: 1.7; }
-#document-app #sources-panel blockquote { margin: .4rem 0 1rem; padding-left: .8rem; border-left: 1px solid #c9cec3; color: #646b64; }
-#document-app .app-footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem 1rem; padding: 1.1rem .2rem 2rem; color: var(--muted); font-size: .74rem; }
-#document-app button, #document-app input, #document-app textarea { transition: background-color .18s ease, border-color .18s ease, transform .18s ease; }
+#document-app .composer-hint {
+  padding: .35rem .4rem 0;
+  color: var(--muted);
+  font-size: .76rem;
+}
+#document-app .evidence-heading {
+  display: flex;
+  align-items: baseline;
+  gap: .7rem;
+  margin: 1.5rem .25rem .65rem;
+}
+#document-app .evidence-heading h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: .88rem;
+  font-weight: 650;
+}
+#document-app .evidence-heading span {
+  color: var(--muted);
+  font-size: .78rem;
+}
+#document-app #sources-panel {
+  padding: .75rem 1rem;
+  border-left: 2px solid #9ab5a0;
+  border-radius: 0 .65rem .65rem 0;
+  background: #f5f3ed;
+  color: #4d554f;
+  font-size: .88rem;
+  line-height: 1.7;
+}
+#document-app #sources-panel blockquote {
+  margin: .4rem 0 1rem;
+  padding-left: .8rem;
+  border-left: 1px solid #c9cec3;
+  color: #646b64;
+}
+#document-app .app-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: .5rem 1rem;
+  padding: 1.1rem .2rem 2rem;
+  color: var(--muted);
+  font-size: .74rem;
+}
+#document-app button,
+#document-app input,
+#document-app textarea {
+  transition: background-color .18s ease, border-color .18s ease, transform .18s ease;
+}
 #document-app button:active { transform: translateY(1px); }
-#document-app button:focus-visible, #document-app input:focus-visible, #document-app textarea:focus-visible { outline: 3px solid #74927f; outline-offset: 2px; }
+#document-app button:focus-visible,
+#document-app input:focus-visible,
+#document-app textarea:focus-visible {
+  outline: 3px solid #74927f;
+  outline-offset: 2px;
+}
 @media (max-width: 700px) {
   #document-app .app-topbar { padding: 1rem 0; }
   #document-app .privacy-note { max-width: 10rem; text-align: right; line-height: 1.5; }
   #document-app .hero { padding: 2.2rem 0 1.5rem; }
-  #document-app #ingest-card, #document-app #conversation { padding: .8rem; }
+  #document-app #ingest-card,
+  #document-app #conversation { padding: .8rem; }
   #document-app .conversation-heading { align-items: flex-start; }
 }
 """
@@ -233,26 +420,28 @@ def build_ui(qa: DocumentQA, warmup_state: list[str]) -> gr.Blocks:
     ) as ui:
         gr.HTML(
             '<header class="app-topbar">'
-            '<div class="brand"><span class="brand-mark">f</span><span>folio / document studio</span></div>'
+            '<div class="brand"><span class="brand-mark">f</span>'
+            '<span>folio / document studio</span></div>'
             '<span class="privacy-note">Private by default · runs on your machine</span>'
             '</header>'
             '<section class="hero">'
             '<div class="eyebrow">A quieter way to read</div>'
             '<h1>The answer is already in your files.</h1>'
-            '<p>Bring in a document, ask a plain question, and follow every answer back to the text that supports it.</p>'
+            '<p>Bring in a document, ask a plain question, and follow every answer back to '
+            'the text that supports it.</p>'
             '</section>'
         )
 
         warmup_banner = gr.HTML(warmup_html(warmup_state[0], model_name))
         warmup_timer = gr.Timer(value=2, active=True)
 
-        with gr.Column(elem_id="ingest-card"):
-            with gr.Row(equal_height=False):
+        with gr.Column(elem_id="ingest-card"), gr.Row(equal_height=False):
                 with gr.Column(scale=2, min_width=230, elem_classes=["upload-copy"]):
                     gr.HTML(
                         '<div class="section-kicker">01 / Start with a file</div>'
                         '<h2>What are we reading?</h2>'
-                        '<p>PDF, text, or Markdown. Your document is processed locally and can be replaced at any time.</p>'
+                        '<p>PDF, text, or Markdown. Your document is processed locally and '
+                        'can be replaced at any time.</p>'
                     )
                     doc_status = gr.Markdown(f"*{IDLE_STATUS}*", elem_classes=["document-status"])
                 file_input = gr.File(
@@ -277,8 +466,10 @@ def build_ui(qa: DocumentQA, warmup_state: list[str]) -> gr.Blocks:
                 elem_id="chat-window",
                 placeholder=(
                     "<div style='text-align:center;padding:5rem 1rem;color:#727a73'>"
-                    "<p style='font-family:Georgia,serif;font-size:1.45rem;color:#202622'>A good question opens a document.</p>"
-                    "<p>Add a file above to begin. Try asking for a summary, a date, or a specific detail.</p>"
+                    "<p style='font-family:Georgia,serif;font-size:1.45rem;color:#202622'>"
+                    "A good question opens a document.</p>"
+                    "<p>Add a file above to begin. Try asking for a summary, a date, or a "
+                    "specific detail.</p>"
                     "</div>"
                 ),
             )
@@ -291,8 +482,17 @@ def build_ui(qa: DocumentQA, warmup_state: list[str]) -> gr.Blocks:
                     container=False,
                     autofocus=True,
                 )
-                submit_btn = gr.Button("Ask  ↗", variant="primary", scale=1, min_width=100, elem_id="send-button")
-            gr.HTML('<div class="composer-hint">Press Enter to ask · Answers are grounded in the passages below</div>')
+                submit_btn = gr.Button(
+                    "Ask  ↗",
+                    variant="primary",
+                    scale=1,
+                    min_width=100,
+                    elem_id="send-button",
+                )
+            gr.HTML(
+                '<div class="composer-hint">Press Enter to ask · '
+                'Answers are grounded in the passages below</div>'
+            )
 
             gr.HTML(
                 '<div class="evidence-heading"><h3>Text behind the answer</h3>'
