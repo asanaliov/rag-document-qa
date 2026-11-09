@@ -1,38 +1,40 @@
 from langchain_core.documents import Document
 
-from rag.qa import NO_ANSWER, SYSTEM_PROMPT, ask, create_qa_chain, format_docs
-from rag.store import build_vector_store
+from rag.qa import (
+    NO_ANSWER,
+    SYSTEM_PROMPT,
+    create_condense_chain,
+    create_qa_chain,
+    format_docs,
+    format_history,
+)
 
 
-def _store(fake_embeddings):
-    chunks = [
-        Document(page_content="The Zorblax protocol was invented in 1987 by Dr. Mira Chen."),
-        Document(page_content="The capital of the Zorblax Republic is Vantorra."),
-    ]
-    return build_vector_store(chunks, fake_embeddings)
-
-
-def test_format_docs_separates_chunks():
+def test_format_docs_numbers_chunks_for_citation():
     joined = format_docs([Document(page_content="first"), Document(page_content="second")])
 
-    assert "first" in joined and "second" in joined
-    assert joined.count("---") == 1
+    assert joined == "[1]\nfirst\n\n[2]\nsecond"
+
+
+def test_format_history_labels_each_turn():
+    assert format_history([("Who?", "Dr. Chen.")]) == "User: Who?\nAssistant: Dr. Chen."
 
 
 def test_system_prompt_states_the_fallback_answer():
     assert NO_ANSWER in SYSTEM_PROMPT
 
 
-def test_retriever_honours_k(fake_embeddings, fake_llm):
-    _, retriever = create_qa_chain(_store(fake_embeddings), fake_llm, k=1)
+def test_qa_chain_returns_the_model_text(fake_llm):
+    chain = create_qa_chain(fake_llm)
 
-    assert len(retriever.invoke("Who invented the protocol?")) == 1
+    answer = chain.invoke({"question": "Who invented it?", "context": "[1]\nsome context"})
+
+    assert answer == "Dr. Mira Chen invented it in 1987."
 
 
-def test_ask_returns_answer_and_the_sources_behind_it(fake_embeddings, fake_llm):
-    chain, retriever = create_qa_chain(_store(fake_embeddings), fake_llm, k=2)
+def test_condense_chain_returns_the_rewritten_question(fake_llm):
+    chain = create_condense_chain(fake_llm)
 
-    result = ask(chain, retriever, "Who invented the Zorblax protocol?")
+    rewritten = chain.invoke({"question": "When?", "history": "User: Who?\nAssistant: Chen."})
 
-    assert result["answer"] == "Dr. Mira Chen invented it in 1987."
-    assert result["num_sources"] == len(result["sources"]) == 2
+    assert rewritten == "Dr. Mira Chen invented it in 1987."

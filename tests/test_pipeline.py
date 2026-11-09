@@ -11,12 +11,12 @@ class ConnectError(Exception):
 
 
 class _ConnectionFailingChatModel(FakeListChatModel):
-    def _generate(self, *args, **kwargs):
+    def _stream(self, *args, **kwargs):
         raise ConnectError("connection refused")
 
 
 class _FailingChatModel(FakeListChatModel):
-    def _generate(self, *args, **kwargs):
+    def _stream(self, *args, **kwargs):
         raise ValueError("model exploded")
 
 
@@ -38,6 +38,40 @@ def test_indexing_then_answering(sample_text_file, fake_embeddings, fake_llm):
 
     assert answer.text == "Dr. Mira Chen invented it in 1987."
     assert answer.sources
+    assert answer.query == "Who invented the Zorblax protocol?"
+
+
+def test_streaming_yields_a_growing_answer(sample_text_file, fake_embeddings, fake_llm):
+    qa = _pipeline(fake_llm, fake_embeddings)
+    qa.index(sample_text_file)
+
+    texts = [answer.text for answer in qa.stream("Who invented the Zorblax protocol?")]
+
+    assert len(texts) > 1
+    assert all(later.startswith(earlier) for earlier, later in zip(texts, texts[1:], strict=False))
+    assert texts[-1] == "Dr. Mira Chen invented it in 1987."
+
+
+def test_follow_up_is_rewritten_before_retrieval(sample_text_file, fake_embeddings):
+    llm = FakeListChatModel(responses=["When was the Zorblax protocol invented?", "In 1987."])
+    qa = _pipeline(llm, fake_embeddings)
+    qa.index(sample_text_file)
+
+    answer = qa.ask("When?", history=[("Who invented the Zorblax protocol?", "Dr. Mira Chen.")])
+
+    assert answer.query == "When was the Zorblax protocol invented?"
+    assert answer.text == "In 1987."
+
+
+def test_first_question_is_not_rewritten(sample_text_file, fake_embeddings):
+    llm = FakeListChatModel(responses=["only the answer"])
+    qa = _pipeline(llm, fake_embeddings)
+    qa.index(sample_text_file)
+
+    answer = qa.ask("Who invented it?")
+
+    assert answer.query == "Who invented it?"
+    assert answer.text == "only the answer"
 
 
 def test_asking_before_indexing_is_a_programming_error(fake_embeddings, fake_llm):

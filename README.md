@@ -4,7 +4,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-Upload a document and ask questions about it in plain language. The app chunks the document, embeds it into a vector store, retrieves the most relevant passages for each question, and has a local LLM answer using only those passages — with the retrieved text shown alongside the answer so you can check it.
+Upload a document and ask questions about it in plain language. The app chunks the document, embeds it into a vector store, retrieves the most relevant passages for each question, and has a local LLM answer using only those passages. Answers stream in as they are generated and cite the passages they rely on as `[1]`, `[2]`, with the retrieved text shown alongside so you can check every claim. Follow-up questions work the way they do in a conversation.
 
 Retrieval and generation both run on your machine: no API keys, no usage costs, and documents never leave the host.
 
@@ -13,15 +13,16 @@ Retrieval and generation both run on your machine: no API keys, no usage costs, 
 ```
 Document -> Chunk -> Embed -> FAISS index
                                    |
-Question -> Embed -> Similarity search -> Top-k chunks -> LLM -> Answer
+Question -> (Rewrite if follow-up) -> Embed -> Similarity search -> Top-k chunks -> LLM -> Cited answer
 ```
 
 1. **Load** — reads PDF, TXT, or Markdown, rejecting oversized files and documents with no extractable text
 2. **Chunk** — splits into overlapping passages (1000 chars, 200 overlap) so nothing is lost at a boundary
 3. **Embed** — turns each chunk into a vector with `all-MiniLM-L6-v2` on CPU
 4. **Index** — stores the vectors in an in-memory FAISS index
-5. **Retrieve** — finds the k most similar chunks for the question
-6. **Generate** — sends those chunks and the question to a local LLM via Ollama, prompted to answer from the context only
+5. **Rewrite** — a follow-up such as "when was she born?" is first rewritten by the LLM into a standalone question, using the last few turns; a first question skips this step
+6. **Retrieve** — finds the k most similar chunks for the question
+7. **Generate** — sends those chunks, numbered, and the question to a local LLM via Ollama, prompted to answer from the context only and cite the passage numbers; the answer is streamed to the UI
 
 ## Tech stack
 
@@ -98,9 +99,10 @@ The first upload downloads the embedding model (about 90 MB) and caches it under
 ## Usage
 
 1. Upload a PDF, TXT, or MD file — it is chunked and indexed automatically (the first upload also loads the embedding model, so give it a moment)
-2. Ask a question and press Enter
-3. Expand **Retrieved passages** to see exactly which chunks the answer came from
-4. Upload a new file at any time to start over on a different document
+2. Ask a question and press Enter — the answer streams in, and the stop button cancels it
+3. Expand **Retrieved passages** to see the numbered chunks behind the `[n]` citations
+4. Ask follow-ups naturally; when one is rewritten, the passages panel shows what was actually searched for
+5. Upload a new file at any time to start over on a different document
 
 ## Configuration
 
@@ -122,11 +124,11 @@ Copy `.env.example` to `.env` to override any default. Every setting is read onc
 
 ```bash
 pip install -r requirements-dev.txt
-pytest          # 28 tests, all offline: no model downloads, no Ollama
+pytest          # 32 tests, all offline: no model downloads, no Ollama
 ruff check .
 ```
 
-The test suite substitutes deterministic fake embeddings and a fake chat model for the real ones, so the full pipeline — loading, chunking, indexing, retrieval, answering and error handling — is covered without network access. CI runs the same two commands on Python 3.11 and 3.12.
+The test suite substitutes deterministic fake embeddings and a fake chat model for the real ones, so the full pipeline — loading, chunking, indexing, retrieval, follow-up rewriting, streaming and error handling — is covered without network access. CI runs the same two commands on Python 3.11 and 3.12.
 
 ## Project structure
 
@@ -138,7 +140,7 @@ rag-document-qa/
 │   ├── errors.py       # Exceptions carrying user-safe messages
 │   ├── loader.py       # Document loading, validation, chunking
 │   ├── store.py        # Embedding model and FAISS index
-│   ├── qa.py           # Prompt, LLM, LCEL chain
+│   ├── qa.py           # Prompts, LLM, LCEL chains
 │   └── pipeline.py     # Stateful orchestration, UI-independent
 ├── tests/
 ├── Dockerfile          # CPU-only image with the embedding weights baked in
@@ -151,9 +153,12 @@ rag-document-qa/
 - **Pipeline separated from UI** — `DocumentQA` owns all state and knows nothing about Gradio, which is what makes the end-to-end tests possible without a browser or a server
 - **Injected models** — embeddings and the LLM are constructor arguments, so tests swap in fakes and a future API-backed model is a one-line change
 - **Retrieve once, then generate** — the retriever is kept out of the chain so the exact passages behind an answer can be shown to the user
+- **Numbered context, cited answers** — passages reach the model as `[1]`, `[2]`, ... and the UI shows them under the same numbers, so a claim can be traced to its source
+- **History rewrites the question, not the answer** — earlier turns are only used to make a follow-up standalone before retrieval; generation still sees nothing but the retrieved passages, so the conversation cannot leak ungrounded facts into an answer
+- **One pipeline per browser session** — each session holds its own index and conversation, so two tabs never overwrite each other's document; the embedding weights are loaded once and shared
 - **Strict grounding** — the system prompt confines the model to the provided context and gives it an explicit way to say the answer is not there
 - **Typed errors** — `RagError` subclasses carry messages safe to display; anything else is logged with a traceback and surfaced as a generic failure, so internals never leak into the UI
-- **In-memory index** — an index belongs to one uploaded document and is discarded with it, so there is nothing to persist or invalidate
+- **In-memory index** — an index belongs to one uploaded document in one session and is discarded with it, so there is nothing to persist or invalidate
 - **Lazy heavy imports** — torch and the embedding weights load on first use, keeping startup fast
 - **Ollama as a separate container** — the model server has its own lifecycle and a volume that survives rebuilds, so changing application code never re-downloads several gigabytes of weights
 

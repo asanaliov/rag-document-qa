@@ -58,29 +58,27 @@ THEME = gr.themes.Soft(
 )
 
 
-def format_sources(docs, max_chars: int = 400) -> str:
-    """Render retrieved chunks as markdown so the answer can be checked against them."""
+def format_sources(docs, query: str | None = None) -> str:
+    """Render retrieved chunks as markdown, numbered to match the [n] citations in the answer."""
     if not docs:
         return NO_SOURCES
 
-    parts = []
+    parts = [f"*Searched for: {query}*"] if query else []
     for i, doc in enumerate(docs, 1):
         page = doc.metadata.get("page")
-        label = f"**Passage {i}**" + (f" — page {page + 1}" if page is not None else "")
+        label = f"**[{i}]**" + (f" — page {page + 1}" if page is not None else "")
         text = " ".join(doc.page_content.split())
-        if len(text) > max_chars:
-            text = text[:max_chars].rstrip() + "..."
         parts.append(f"{label}\n\n> {text}")
     return "\n\n".join(parts)
 
 
-def build_ui(qa: DocumentQA) -> gr.Blocks:
+def build_ui(settings: Settings) -> gr.Blocks:
     """Wire the pipeline up to the Gradio components."""
 
-    def index_document(file):
+    def index_document(file, qa):
         if file is None:
             qa.reset()
-            return IDLE_STATUS, [], NO_SOURCES
+            return IDLE_STATUS, [], NO_SOURCES, qa, []
 
         try:
             result = qa.index(file.name)
@@ -91,33 +89,48 @@ def build_ui(qa: DocumentQA) -> gr.Blocks:
             logger.exception("Indexing failed for %s", file.name)
             status = f"**Could not index the document.** {UNEXPECTED_ERROR}"
 
-        # A new document means a new conversation: clear the chat and sources.
-        return status, [], NO_SOURCES
+        # A new document means a new conversation: clear the chat, sources and history.
+        return status, [], NO_SOURCES, qa, []
 
-    def answer_question(question, history):
+    def answer_question(question, chat, qa, turns):
         question = question.strip()
         if not question:
-            return history, "", gr.update()
+            yield chat, "", gr.update(), turns
+            return
+
+        chat = chat + [{"role": "user", "content": question}]
+
+        def reply(text):
+            return chat + [{"role": "assistant", "content": text}]
 
         if not qa.is_ready:
-            answer, sources_md = "Upload a document first.", NO_SOURCES
-        else:
-            try:
-                result = qa.ask(question)
-                answer, sources_md = result.text, format_sources(result.sources)
-            except RagError as exc:
-                answer, sources_md = str(exc), NO_SOURCES
-            except Exception:
-                logger.exception("Answering failed")
-                answer, sources_md = UNEXPECTED_ERROR, NO_SOURCES
+            yield reply("Upload a document first."), "", NO_SOURCES, turns
+            return
 
-        history = history + [
-            {"role": "user", "content": question},
-            {"role": "assistant", "content": answer},
-        ]
-        return history, "", sources_md
+        # Show the question and empty the box right away; the answer streams in below.
+        yield chat, "", gr.update(), turns
+
+        try:
+            answer = None
+            for answer in qa.stream(question, turns):
+                # Only mention the search query when a follow-up was rewritten.
+                query = answer.query if answer.query != question else None
+                yield reply(answer.text), "", format_sources(answer.sources, query), turns
+            if answer is not None:
+                # Failed turns are left out, so an error never becomes conversation context.
+                yield gr.update(), "", gr.update(), turns + [(question, answer.text.strip())]
+        except RagError as exc:
+            yield reply(str(exc)), "", NO_SOURCES, turns
+        except Exception:
+            logger.exception("Answering failed")
+            yield reply(UNEXPECTED_ERROR), "", NO_SOURCES, turns
 
     with gr.Blocks(title="RAG Document Q&A", analytics_enabled=False) as ui:
+        # One pipeline and one conversation per browser session, so two tabs
+        # never overwrite each other's document.
+        qa = gr.State(lambda: DocumentQA(settings))
+        turns = gr.State([])
+
         gr.HTML(HEADER)
 
         with gr.Row(equal_height=False):
@@ -133,7 +146,9 @@ def build_ui(qa: DocumentQA) -> gr.Blocks:
                         "1. The document is split into overlapping chunks\n"
                         "2. Each chunk is embedded and stored in a FAISS index\n"
                         "3. Your question retrieves the most similar chunks\n"
-                        "4. A local LLM answers using only those chunks"
+                        "4. A local LLM answers using only those chunks, "
+                        "citing them as [1], [2], ...\n"
+                        "5. Follow-up questions are rewritten to stand alone before the search"
                     )
 
             with gr.Column(scale=2):
@@ -146,23 +161,28 @@ def build_ui(qa: DocumentQA) -> gr.Blocks:
                     show_label=False,
                     placeholder="Ask something about the document and press Enter",
                     submit_btn=True,
+                    stop_btn=True,
                 )
                 with gr.Accordion("Retrieved passages", open=False):
                     sources = gr.Markdown(NO_SOURCES)
                 clear_btn = gr.Button("Clear chat", size="sm")
 
-        file_input.change(index_document, inputs=[file_input], outputs=[status, chatbot, sources])
+        file_input.change(
+            index_document,
+            inputs=[file_input, qa],
+            outputs=[status, chatbot, sources, qa, turns],
+        )
         question.submit(
             answer_question,
-            inputs=[question, chatbot],
-            outputs=[chatbot, question, sources],
+            inputs=[question, chatbot, qa, turns],
+            outputs=[chatbot, question, sources, turns],
         )
-        clear_btn.click(lambda: ([], NO_SOURCES), outputs=[chatbot, sources])
+        clear_btn.click(lambda: ([], NO_SOURCES, []), outputs=[chatbot, sources, turns])
 
         gr.HTML(
             '<div class="app-footer">'
-            f"Embeddings: {qa.settings.embedding_model} &middot; "
-            f"LLM: {qa.settings.ollama_model} via Ollama &middot; Vector store: FAISS"
+            f"Embeddings: {settings.embedding_model} &middot; "
+            f"LLM: {settings.ollama_model} via Ollama &middot; Vector store: FAISS"
             "</div>"
         )
 
@@ -179,7 +199,7 @@ def main() -> None:
     # Ollama and Gradio both call through httpx, which logs every request at INFO.
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
-    ui = build_ui(DocumentQA(settings))
+    ui = build_ui(settings)
     ui.launch(
         theme=THEME,
         css=CSS,
