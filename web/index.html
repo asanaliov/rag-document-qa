@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Document Q&amp;A</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='4' fill='%23ffe14d'/%3E%3Cpath d='M4.5 5.5h7M4.5 8h7M4.5 10.5h4' stroke='%2318202f' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="preload" href="/static/fonts/literata.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/static/fonts/instrument-sans.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body data-state="loading">
+  <header class="bar">
+    <span class="brand">Document Q&amp;A <span class="model-status" id="model-status" role="status" hidden></span></span>
+    <div class="doc" id="doc">
+      <span class="doc-name" id="doc-name"></span>
+      <span class="doc-meta" id="doc-meta"></span>
+      <button class="quiet" id="clear" type="button" hidden>Clear conversation</button>
+      <button class="quiet" id="replace" type="button">Replace document</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="intro" id="intro">
+      <h1>Add a document, then ask it questions.</h1>
+      <p>
+        Every answer is written only from the document's own text and points to the
+        passages it used, so you can check it. Nothing leaves this machine:
+        answers come from <span id="model">a local model</span> running here.
+      </p>
+      <div class="pick">
+        <button class="action" id="choose" type="button">Choose a document</button>
+        <span class="hint" id="limits">or drop a file anywhere on this page</span>
+      </div>
+    </section>
+
+    <section class="reading" id="reading" aria-live="polite">
+      <h1 id="reading-title">Reading the document</h1>
+      <p>Splitting it into passages and indexing them. The first document takes a little longer.</p>
+      <div class="progress" role="progressbar" aria-label="Indexing"></div>
+    </section>
+
+    <section class="ready" id="ready">
+      <h1 id="ready-title"></h1>
+      <p id="ready-meta"></p>
+    </section>
+
+    <p class="notice" id="notice" role="alert" hidden></p>
+
+    <ol class="thread" id="thread" aria-label="Conversation"></ol>
+  </main>
+
+  <form class="composer" id="composer">
+    <div class="field">
+      <textarea id="question" rows="1" aria-label="Question" autocomplete="off"></textarea>
+      <button class="action" id="send" type="submit">Ask</button>
+    </div>
+  </form>
+
+  <input id="file" type="file" hidden>
+  <div class="veil" aria-hidden="true"><span>Drop the document to read it</span></div>
+</body>
+</html>

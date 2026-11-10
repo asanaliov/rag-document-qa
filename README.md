@@ -6,7 +6,8 @@
 
 Upload a document and ask questions about it.
 The app chunks the document, embeds it into a vector store, retrieves the most relevant passages for each question, and answers using only those passages.
-The retrieved text is shown alongside every answer so you can verify it.
+Answers stream in as they are generated and cite the passages they rely on as `[1]`, `[2]`, with the passages shown beside the answer so you can check every claim.
+Follow-up questions work the way they do in a conversation.
 
 Everything runs locally - no API keys, no usage costs, documents never leave your machine.
 
@@ -21,7 +22,7 @@ docker compose up -d
 ```
 
 On the first run, Docker downloads the app image and the default Ollama model (about 2 GB).
-The app starts when the model download finishes, and the UI shows when the model is ready.
+The app starts when the model download finishes, and the top bar shows when the model is ready.
 
 On later runs, start the app with `docker compose up -d` and stop it with `docker compose down`.
 Both the model and downloaded embedding files stay cached between starts.
@@ -34,15 +35,16 @@ Avoid `docker compose down -v` unless you want to delete the cached model and do
 ```
 Document -> Chunk -> Embed -> FAISS index
                                    |
-Question -> Embed -> Similarity search -> Top-k chunks -> LLM -> Answer
+Question -> (Rewrite if follow-up) -> Embed -> Similarity search -> Top-k chunks -> LLM -> Cited answer
 ```
 
 1. **Load** — reads PDF, TXT, or Markdown, rejecting oversized files and documents with no extractable text
 2. **Chunk** — splits into overlapping passages (1000 chars, 200 overlap) so nothing is lost at a boundary
 3. **Embed** — turns each chunk into a vector with `all-MiniLM-L6-v2` on CPU
 4. **Index** — stores the vectors in an in-memory FAISS index
-5. **Retrieve** — finds the k most similar chunks for the question
-6. **Generate** — sends those chunks and the question to a local LLM via Ollama, prompted to answer from the context only
+5. **Rewrite** — a follow-up such as "when was she born?" is first rewritten by the LLM into a standalone question, using the last few turns; a first question skips this step
+6. **Retrieve** — finds the k most similar chunks for the question
+7. **Generate** — sends those chunks, numbered, and the question to a local LLM via Ollama, prompted to answer from the context only and cite the passage numbers; the answer is streamed to the page
 
 ## Tech stack
 
@@ -52,7 +54,8 @@ Question -> Embed -> Similarity search -> Top-k chunks -> LLM -> Answer
 | Vector store     | FAISS                                      |
 | Embeddings       | sentence-transformers (`all-MiniLM-L6-v2`) |
 | LLM              | Ollama (`llama3.2:3b` by default)          |
-| UI               | Gradio                                     |
+| Server           | FastAPI, uvicorn                           |
+| UI               | Plain HTML, CSS and JavaScript (no build)  |
 | Document parsing | pypdf, LangChain TextLoader                |
 | Tests / lint     | pytest, ruff, GitHub Actions               |
 | Packaging        | Docker Compose (app + Ollama)              |
@@ -102,18 +105,16 @@ python app.py
 Open [http://localhost:7860](http://localhost:7860).
 
 > **Startup note:** When the app starts it sends a warm-up request to Ollama in the background so the model is already loaded into RAM before you ask your first question.
-> Watch the status banner at the top of the UI - it turns green once the model is ready.
+> The top bar says when the model is loading and clears once it is ready.
 > The embedding model (~90 MB) downloads automatically on first use and is cached under `~/.cache/huggingface`.
-
-
 
 ## Usage
 
-1. Upload a PDF, TXT, or MD file - it is chunked and indexed automatically
-2. Wait for the model status banner to turn green (warm-up takes a few seconds on first start)
-3. Ask a question and press **Enter** or click **Send**
-4. The **Retrieved Passages** section below the chat shows which chunks the answer came from
-5. Upload a new file at any time to switch documents
+1. Choose a PDF, TXT, or MD file, or drop it anywhere on the page - it is chunked and indexed automatically
+2. Ask a question and press **Enter** - the answer streams in, and **Stop** cancels it
+3. The passages behind the answer sit in the margin beside it, numbered to match the `[n]` citations; point at a citation to highlight its passage, click it to read the passage in full
+4. Ask follow-ups naturally; when one is rewritten, the margin shows what was actually searched for
+5. Use **Replace document** at any time to switch documents
 
 ## Configuration
 
@@ -135,23 +136,24 @@ Copy `.env.example` to `.env` to override any default. Every setting is read onc
 
 ```bash
 pip install -r requirements-dev.txt
-pytest          # 28 tests, all offline: no model downloads, no Ollama
+pytest          # 42 tests, all offline: no model downloads, no Ollama
 ruff check .
 ```
 
-The test suite substitutes deterministic fake embeddings and a fake chat model for the real ones, so the full pipeline — loading, chunking, indexing, retrieval, answering and error handling — is covered without network access. CI runs the same two commands on Python 3.11 and 3.12.
+The test suite substitutes deterministic fake embeddings and a fake chat model for the real ones, so the API and the full pipeline — loading, chunking, indexing, retrieval, follow-up rewriting, streaming and error handling — is covered without network access. CI runs the same two commands on Python 3.11 and 3.12.
 
 ## Project structure
 
 ```
 rag-document-qa/
-├── app.py              # Gradio UI and entry point
+├── app.py              # FastAPI server: sessions, upload, streamed answers, model warm-up
+├── web/                # The interface: index.html, app.css, app.js, fonts
 ├── rag/
 │   ├── config.py       # Settings resolved from the environment
 │   ├── errors.py       # Exceptions carrying user-safe messages
 │   ├── loader.py       # Document loading, validation, chunking
 │   ├── store.py        # Embedding model and FAISS index
-│   ├── qa.py           # Prompt, LLM, LCEL chain
+│   ├── qa.py           # Prompts, LLM, LCEL chains
 │   └── pipeline.py     # Stateful orchestration, UI-independent
 ├── tests/
 ├── Dockerfile          # CPU-only image with the embedding weights baked in
@@ -161,12 +163,18 @@ rag-document-qa/
 
 ## Design decisions
 
-- **Pipeline separated from UI** — `DocumentQA` owns all state and knows nothing about Gradio, which is what makes the end-to-end tests possible without a browser or a server
+- **Pipeline separated from UI** — `DocumentQA` owns the document state and knows nothing about HTTP, which is what made it possible to replace the original Gradio front end without touching the pipeline
 - **Injected models** — embeddings and the LLM are constructor arguments, so tests swap in fakes and a future API-backed model is a one-line change
 - **Retrieve once, then generate** — the retriever is kept out of the chain so the exact passages behind an answer can be shown to the user
+- **Numbered context, cited answers** — passages reach the model as `[1]`, `[2]`, ... and the page shows them under the same numbers, so a claim can be traced to its source
+- **History rewrites the question, not the answer** — earlier turns are only used to make a follow-up standalone before retrieval; generation still sees nothing but the retrieved passages, so the conversation cannot leak ungrounded facts into an answer
+- **One pipeline per browser session** — a cookie maps each browser to its own index, so two users never overwrite each other's document; the embedding weights are loaded once and shared. The browser owns the conversation and sends it with each question, so clearing it needs no server call
+- **Answers stream as newline-delimited JSON** — one `fetch` reads the passages first and then the text as it is generated; cancelling the request stops the model
+- **Warm-up at startup** — a one-token request in a background thread loads the model into memory, so the first question does not pay the load time
+- **No frontend build, nothing fetched from outside** — the interface is three static files, and its two fonts (Literata and Instrument Sans, SIL Open Font License) are served by the app, so the page works offline like everything else
 - **Strict grounding** — the system prompt confines the model to the provided context and gives it an explicit way to say the answer is not there
 - **Typed errors** — `RagError` subclasses carry messages safe to display; anything else is logged with a traceback and surfaced as a generic failure, so internals never leak into the UI
-- **In-memory index** — an index belongs to one uploaded document and is discarded with it, so there is nothing to persist or invalidate
+- **In-memory index** — an index belongs to one uploaded document in one session and is discarded with it, so there is nothing to persist or invalidate
 - **Lazy heavy imports** — torch and the embedding weights load on first use, keeping startup fast
 - **Ollama as a separate container** — the model server has its own lifecycle and a volume that survives rebuilds, so changing application code never re-downloads several gigabytes of weights
 

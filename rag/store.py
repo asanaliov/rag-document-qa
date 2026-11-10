@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from functools import lru_cache
 
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
@@ -12,11 +13,15 @@ logger = logging.getLogger(__name__)
 DEFAULT_EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 
 
+@lru_cache(maxsize=1)
 def create_embeddings(
     model_name: str = DEFAULT_EMBEDDING_MODEL,
     device: str = "cpu",
 ) -> Embeddings:
-    """Load the local sentence-transformer model. First call downloads the weights."""
+    """Load the local sentence-transformer model. First call downloads the weights.
+
+    Cached so every user session shares one copy of the loaded weights.
+    """
     # Imported lazily: it pulls in torch, which costs several seconds of startup.
     from langchain_huggingface import HuggingFaceEmbeddings
 
