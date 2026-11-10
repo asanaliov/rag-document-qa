@@ -15,6 +15,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY --chown=app:app rag/ ./rag/
+COPY --chown=app:app web/ ./web/
 COPY --chown=app:app app.py .
 
 USER app

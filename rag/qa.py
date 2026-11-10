@@ -16,15 +16,16 @@ The context is a list of numbered passages.
 Rules:
 - Use only facts stated in the context. Do not add outside knowledge.
 - If the context does not contain the answer, reply: "{NO_ANSWER}"
-- Cite the passages you used by their number in square brackets, like [1] or [2][3].
-- Answer directly and concisely. Do not repeat the question or pad the response."""
+- Answer in complete sentences, directly and concisely. Do not pad the response.
+- After each fact, add the number of the passage it came from in square brackets.
+  Example of the format: The bridge opened in 1932 [2] and was widened in 1960 [4]."""
 
 QA_TEMPLATE = """Context:
 {context}
 
 Question: {question}
 
-Answer based only on the context above:"""
+Answer in complete sentences, based only on the context above, with passage numbers in brackets:"""
 
 CONDENSE_SYSTEM_PROMPT = """Rewrite the follow-up question as a standalone question that can be \
 understood without the conversation, replacing pronouns and references with what they refer to.

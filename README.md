@@ -32,7 +32,8 @@ Question -> (Rewrite if follow-up) -> Embed -> Similarity search -> Top-k chunks
 | Vector store     | FAISS                                      |
 | Embeddings       | sentence-transformers (`all-MiniLM-L6-v2`) |
 | LLM              | Ollama (`llama3.2:3b` by default)          |
-| UI               | Gradio                                     |
+| Server           | FastAPI, uvicorn                           |
+| UI               | Plain HTML, CSS and JavaScript (no build)  |
 | Document parsing | pypdf, LangChain TextLoader                |
 | Tests / lint     | pytest, ruff, GitHub Actions               |
 | Packaging        | Docker Compose (app + Ollama)              |
@@ -99,10 +100,10 @@ The first upload downloads the embedding model (about 90 MB) and caches it under
 ## Usage
 
 1. Upload a PDF, TXT, or MD file — it is chunked and indexed automatically (the first upload also loads the embedding model, so give it a moment)
-2. Ask a question and press Enter — the answer streams in, and the stop button cancels it
-3. Expand **Retrieved passages** to see the numbered chunks behind the `[n]` citations
-4. Ask follow-ups naturally; when one is rewritten, the passages panel shows what was actually searched for
-5. Upload a new file at any time to start over on a different document
+2. Ask a question and press Enter — the answer streams in, and **Stop** cancels it
+3. The passages behind the answer sit in the margin beside it, numbered to match the `[n]` citations; point at a citation to highlight its passage, click it to read the passage in full
+4. Ask follow-ups naturally; when one is rewritten, the margin shows what was actually searched for
+5. Use **Replace document** at any time to start over on a different document
 
 ## Configuration
 
@@ -124,17 +125,18 @@ Copy `.env.example` to `.env` to override any default. Every setting is read onc
 
 ```bash
 pip install -r requirements-dev.txt
-pytest          # 32 tests, all offline: no model downloads, no Ollama
+pytest          # 41 tests, all offline: no model downloads, no Ollama
 ruff check .
 ```
 
-The test suite substitutes deterministic fake embeddings and a fake chat model for the real ones, so the full pipeline — loading, chunking, indexing, retrieval, follow-up rewriting, streaming and error handling — is covered without network access. CI runs the same two commands on Python 3.11 and 3.12.
+The test suite substitutes deterministic fake embeddings and a fake chat model for the real ones, so the API and the full pipeline — loading, chunking, indexing, retrieval, follow-up rewriting, streaming and error handling — is covered without network access. CI runs the same two commands on Python 3.11 and 3.12.
 
 ## Project structure
 
 ```
 rag-document-qa/
-├── app.py              # Gradio UI and entry point
+├── app.py              # FastAPI server: sessions, upload, streamed answers
+├── web/                # The interface: index.html, app.css, app.js, fonts
 ├── rag/
 │   ├── config.py       # Settings resolved from the environment
 │   ├── errors.py       # Exceptions carrying user-safe messages
@@ -150,12 +152,14 @@ rag-document-qa/
 
 ## Design decisions
 
-- **Pipeline separated from UI** — `DocumentQA` owns all state and knows nothing about Gradio, which is what makes the end-to-end tests possible without a browser or a server
+- **Pipeline separated from UI** — `DocumentQA` owns the document state and knows nothing about HTTP, which is what made it possible to replace the original Gradio front end without touching the pipeline
 - **Injected models** — embeddings and the LLM are constructor arguments, so tests swap in fakes and a future API-backed model is a one-line change
 - **Retrieve once, then generate** — the retriever is kept out of the chain so the exact passages behind an answer can be shown to the user
 - **Numbered context, cited answers** — passages reach the model as `[1]`, `[2]`, ... and the UI shows them under the same numbers, so a claim can be traced to its source
 - **History rewrites the question, not the answer** — earlier turns are only used to make a follow-up standalone before retrieval; generation still sees nothing but the retrieved passages, so the conversation cannot leak ungrounded facts into an answer
-- **One pipeline per browser session** — each session holds its own index and conversation, so two tabs never overwrite each other's document; the embedding weights are loaded once and shared
+- **One pipeline per browser session** — a cookie maps each browser to its own index, so two users never overwrite each other's document; the embedding weights are loaded once and shared. The browser owns the conversation and sends it with each question, so clearing it needs no server call
+- **Answers stream as newline-delimited JSON** — one `fetch` reads the passages first and then the text as it is generated; cancelling the request stops the model
+- **No frontend build, nothing fetched from outside** — the interface is three static files, and its two fonts (Literata and Instrument Sans, SIL Open Font License) are served by the app, so the page works offline like everything else
 - **Strict grounding** — the system prompt confines the model to the provided context and gives it an explicit way to say the answer is not there
 - **Typed errors** — `RagError` subclasses carry messages safe to display; anything else is logged with a traceback and surfaced as a generic failure, so internals never leak into the UI
 - **In-memory index** — an index belongs to one uploaded document in one session and is discarded with it, so there is nothing to persist or invalidate
