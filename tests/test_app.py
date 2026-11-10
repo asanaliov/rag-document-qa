@@ -41,8 +41,15 @@ def test_new_session_has_no_document(client):
     session = client.get("/api/session").json()
 
     assert session["document"] is None
+    assert session["model_status"] == "ready"
     assert session["max_upload_mb"] == 1
     assert ".pdf" in session["extensions"]
+
+
+def test_session_reports_the_warm_up_state(app, client):
+    app.state.model_status = "warming-up"
+
+    assert client.get("/api/session").json()["model_status"] == "warming-up"
 
 
 def test_upload_indexes_the_document_and_the_session_remembers_it(client):

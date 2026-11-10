@@ -106,6 +106,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
   padding: 1.25rem var(--edge);
 }
 .brand { font-weight: 600; letter-spacing: -0.005em; }
+.model-status { margin-left: 0.75rem; font-weight: 400; font-size: 0.875rem; color: var(--muted); }
+.model-status.failed { color: var(--error); }
 .doc { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.35rem 1.25rem; font-size: 0.875rem; }
 .doc-name { font-weight: 600; overflow-wrap: anywhere; }
 .doc-meta { color: var(--muted); }

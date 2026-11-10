@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import tempfile
+import threading
 import uuid
 from collections import OrderedDict
 from collections.abc import Iterator
@@ -32,6 +33,10 @@ WEB_DIR = Path(__file__).parent / "web"
 SESSION_COOKIE = "sid"
 MAX_SESSIONS = 32
 UNEXPECTED_ERROR = "Something went wrong. Check the server logs for details."
+
+WARMUP_PENDING = "warming-up"
+WARMUP_READY = "ready"
+WARMUP_FAILED = "failed"
 
 
 @dataclass
@@ -75,12 +80,34 @@ def answer_events(qa: DocumentQA, question: str, history: list[tuple[str, str]])
         yield _event(type="error", message=UNEXPECTED_ERROR)
 
 
+def warm_up(app: FastAPI, settings: Settings) -> None:
+    """Send a tiny request so Ollama loads the model into RAM before the first question.
+
+    Runs in a background thread so the server starts immediately.
+    """
+    from langchain_ollama import ChatOllama
+
+    try:
+        logger.info("Warming up model %s at %s", settings.ollama_model, settings.ollama_base_url)
+        llm = ChatOllama(
+            model=settings.ollama_model, base_url=settings.ollama_base_url, num_predict=1
+        )
+        llm.invoke("hi")
+        app.state.model_status = WARMUP_READY
+        logger.info("Model warm-up complete")
+    except Exception:
+        logger.warning("Model warm-up failed (Ollama may not be running yet)", exc_info=True)
+        app.state.model_status = WARMUP_FAILED
+
+
 def create_app(
     settings: Settings,
     embeddings: Embeddings | None = None,
     llm: BaseChatModel | None = None,
 ) -> FastAPI:
     app = FastAPI(title="RAG Document Q&A", docs_url=None, redoc_url=None)
+    # main() sets this to pending while the warm-up runs; tests have nothing to wait for.
+    app.state.model_status = WARMUP_READY
     # One pipeline per browser, so two tabs never overwrite each other's document.
     # The least recently used session is dropped once the limit is reached.
     sessions: OrderedDict[str, Session] = OrderedDict()
@@ -112,6 +139,7 @@ def create_app(
         return {
             "document": session.document if session else None,
             "model": settings.ollama_model,
+            "model_status": app.state.model_status,
             "max_upload_mb": settings.max_upload_mb,
             "extensions": SUPPORTED_EXTENSIONS,
         }
@@ -190,8 +218,12 @@ def main() -> None:
     # The Ollama client calls through httpx, which logs every request at INFO.
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
+    app = create_app(settings)
+    app.state.model_status = WARMUP_PENDING
+    threading.Thread(target=warm_up, args=(app, settings), daemon=True).start()
+
     uvicorn.run(
-        create_app(settings),
+        app,
         host=settings.server_host,
         port=settings.server_port,
         log_level=settings.log_level.lower(),

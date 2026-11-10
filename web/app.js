@@ -287,6 +287,7 @@ async function ask(asked) {
         return;
       } else if (event.type === "done") {
         history.push([asked, text.trim()]);
+        showModelStatus("ready");
         // Dim the passages the answer did not point at, unless it cited nothing at all.
         const cited = new Set([...answer.querySelectorAll(".cite")].map((c) => c.dataset.n));
         if (cited.size) {
@@ -335,6 +336,31 @@ question.addEventListener("keydown", (event) => {
   }
 });
 
+// ---------- Model warm-up ----------
+
+function showModelStatus(state, model) {
+  const status = $("model-status");
+  status.classList.toggle("failed", state === "failed");
+  status.textContent =
+    state === "warming-up" ? `Loading ${model}` :
+    state === "failed" ? `Could not reach Ollama. Start it with: ollama serve` : "";
+  status.hidden = !status.textContent;
+}
+
+// Poll until the server's warm-up request finishes; a failure stays visible until an answer succeeds.
+async function watchModel(state, model) {
+  showModelStatus(state, model);
+  while (state === "warming-up") {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      state = (await (await fetch("/api/session")).json()).model_status;
+    } catch {
+      return;
+    }
+    showModelStatus(state, model);
+  }
+}
+
 // ---------- Start ----------
 
 (async function start() {
@@ -346,6 +372,7 @@ question.addEventListener("keydown", (event) => {
       `or drop a file anywhere on this page. ${session.extensions.map((e) => e.slice(1).toUpperCase()).join(", ")} up to ${session.max_upload_mb} MB.`;
     $("file").accept = session.extensions.join(",");
     showDocument(session.document);
+    watchModel(session.model_status, session.model);
   } catch {
     body.dataset.state = "empty";
     showNotice("The server did not respond. Is it still running?");
